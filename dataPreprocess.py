@@ -1,8 +1,11 @@
-from sqlite3 import Row
 from track_1_kp_matching import *
 
 import os
 import pandas as pd
+
+
+from transformers import AutoTokenizer
+
 
 #TODO
 #la tokenizzazione si fa dopo aver creato il dataset
@@ -159,17 +162,19 @@ def preprocess(path="kpm_data", subset="train"):
         
     
     processedData = pd.DataFrame()
+    tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
     
     data = []
+    
     for label in labels:
         argId = label.argId
         keyId = label.keyPointId
         if arguments[argId].stance == keyPoints[keyId].stance:
+            tokenized_data = tokenizer('[CLS]' + arguments[argId].argument + '[SEP]'+ keyPoints[keyId].key_point + '[SEP]', return_tensors="np")
             data.append([
-                argId, keyId, [arguments[argId].argument,  keyPoints[keyId].key_point], label.label
+                argId, keyId, tokenized_data, label.label
             ])
-    
-    #TODO tokenize data[2]
+
     return data
     
 def readCSV(path, subset):
