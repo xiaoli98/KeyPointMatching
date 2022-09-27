@@ -195,4 +195,39 @@ def getRow(df, idToSearch, cl_name):
     return -1
     
 
-preprocess()
+import nltk
+from nltk import word_tokenize as tokenizer
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer as stemmer
+import string
+
+def token(toTokanize, dictionary):
+    newDic = dictionary
+    words_toID = []
+    stop_words = stopwords.words('english')
+    porter = stemmer()
+
+    filtered_words = toTokanize.lower() #to lower case
+    filtered_words = "".join([char for char in filtered_words if char not in string.punctuation]) # remove punctuation 
+    filtered_words = tokenizer(filtered_words, "english")   # tokenize
+    filtered_words = [word for word in filtered_words if word not in stop_words] # remove stopwords (try without removing during training)
+    filtered_words = [porter.stem(word) for word in filtered_words] #stemming
+    print(toTokanize)
+    print(filtered_words)
+
+    for word in filtered_words:
+        for w_in, index in newDic:
+            if w_in == word:
+                words_toID.append(index)
+                break
+            
+        newDic[word] = len(newDic) + 1
+        words_toID.append(len(newDic) + 1)
+    return newDic, words_toID
+
+#preprocess()
+
+dic = {}
+dic, fr = token("hello there general kenobi, hello ", dic)
+print(dic)
+print(fr)
