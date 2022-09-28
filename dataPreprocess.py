@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 
-from transformers import AutoTokenizer
+#from transformers import AutoTokenizer
 
 
 #TODO
@@ -203,6 +203,7 @@ import string
 
 def token(toTokanize, dictionary):
     newDic = dictionary
+    
     words_toID = []
     stop_words = stopwords.words('english')
     porter = stemmer()
@@ -212,22 +213,30 @@ def token(toTokanize, dictionary):
     filtered_words = tokenizer(filtered_words, "english")   # tokenize
     filtered_words = [word for word in filtered_words if word not in stop_words] # remove stopwords (try without removing during training)
     filtered_words = [porter.stem(word) for word in filtered_words] #stemming
-    print(toTokanize)
-    print(filtered_words)
+    #print(toTokanize)
+    #print(filtered_words)
 
     for word in filtered_words:
-        for w_in, index in newDic:
+        for w_in, index in newDic.items():
             if w_in == word:
                 words_toID.append(index)
                 break
-            
-        newDic[word] = len(newDic) + 1
-        words_toID.append(len(newDic) + 1)
+        _, index = list(newDic.items())[-1]
+        newDic[word] = index + 1
+        words_toID.append(index + 1)
     return newDic, words_toID
 
 #preprocess()
 
-dic = {}
-dic, fr = token("hello there general kenobi, hello ", dic)
+dic = {"[CLS]":0,"[SEP]":1}
+toTk = "[CLS] On a windy winter morning, a woman looked out of the window.The only thing she saw, a garden. A smile spread across her face as she spotted Maria, her daughter, in the middle of the garden enjoying the weather. It started drizzling. Maria started dancing joyfully.She tried to wave to her daughter, but her elbow was stuck, her arm hurt, her smile turned upside down. Reality came crashing down as the drizzle turned into a storm. Maria's murdered corpse consumed her mind.On a windy winter morning, a woman looked out of the window of her jail cell. [SEP]"
+dic, fr = token(toTk, dic)
 print(dic)
+print("\n")
+print(fr)
+print("---")
+toTk = " [SEP] The schoolboy squirmed. Another two minutes? He knew he should stand at attention. The drillmaster's cane loomed large.Vindhya Himachal … He grunted in discomfort. This was unbearable. He considered making a dash; after all he was in the last row. What if the master noticed? The cane loomed again. He gritted his teeth. Tava shubha … This is it. He cast his eyes around.Jaya he …He started running.Jaya he …He was almost there.Jaya he … The chorus floated from afar. He was already in the toilet, heaving a relieved sigh."
+dic, fr = token(toTk, dic)
+print(dic)
+print("\n")
 print(fr)
