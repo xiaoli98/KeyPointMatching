@@ -1,22 +1,11 @@
+from transformers import BertTokenizer
 from track_1_kp_matching import *
 
 import os
 import pandas as pd
 import random
 import tensorflow as tf
-import tqdm as tqdm
-
-
-#from transformers import AutoTokenizer
-
-
-#TODO
-#la tokenizzazione si fa dopo aver creato il dataset
-#il dataset e' composto da fare una join tra arg_id e key_id presente nel label_file
-#
-
-#implementare modelli tipo distillated BERT/BERT_based 
-
+from tqdm import tqdm
 
 class Argument:
 
@@ -163,11 +152,8 @@ def preprocess(path="kpm_data", subset="train", batch=16, shuffle=True):
        kp.stance = row['stance']
        keyPoints[kp.keyPointId] = kp
         
-    
-    processedData = pd.DataFrame()
     tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
     
-
     data = []
     targets = []
     
@@ -182,23 +168,33 @@ def preprocess(path="kpm_data", subset="train", batch=16, shuffle=True):
     pair = list(zip(data, targets))
     if shuffle:
         random.shuffle(pair)
-    data, targets = zip(*pair)
+    data, targets = list(zip(*pair))
         
-    print("total length: " + str(len(labels)))
+    print("total length: " + str(len(targets)))
+
     train_set = tokenizer(data, padding=True, truncation=True, return_tensors="tf")
     train_set['labels'] = targets
+    train_set['batches'] = 1
 
     if batch > 1:
         print("preparing batches")
-        with tqdm(total=(len(data)/batch) + 1) as pbar:
-            batch_train_set = []
+        with tqdm(total=int((len(data)/batch) + 1)) as pbar:
+            batch_train_set = {'input_ids':[], 
+                               'token_type_ids': [],
+                               'attention_mask': [],
+                               'labels': []
+                               }
             for i in range(0, len(data), batch):
                 #print("creating batch " + str(i) + ":" + (str(i+batch) if i+batch<len(data) else str(len(data))))
                 
-                encoded_dict = tokenizer.batch_encode_plus(data[i:i+batch],padding=True,truncation=True,return_tensors="tf")
-                encoded_dict['labels'] = targets[i:i+batch]
-                train_set.append(encoded_dict)
+                batch_train_set['input_ids'].append(train_set['input_ids'][i:i+batch])
+                batch_train_set['token_type_ids'].append(train_set['token_type_ids'][i:i+batch])
+                batch_train_set['attention_mask'].append(train_set['attention_mask'][i:i+batch])
+                batch_train_set['labels'].append(targets[i:i+batch])
+                # train_set.append(encoded_dict)
                 pbar.update(1)
+            train_set = batch_train_set
+            train_set['batches'] = int((len(data)/batch) + 1)
     return train_set
     
 def readCSV(path, subset):
@@ -262,14 +258,14 @@ def load_vocab_file():
 
     return dictionary
 
-dic = load_vocab_file()
+# dic = load_vocab_file()
 
-toTk = "[CLS] house house On a windy winter morning, a woman looked out of the window.The only thing she saw, a garden. A smile spread across her face as she spotted Maria, her daughter, in the middle of the garden enjoying the weather. It started drizzling. Maria started dancing joyfully.She tried to wave to her daughter, but her elbow was stuck, her arm hurt, her smile turned upside down. Reality came crashing down as the drizzle turned into a storm. Maria's murdered corpse consumed her mind.On a windy winter morning, a woman looked out of the window of her jail cell. [SEP]"
-dic, fr = token(toTk, dic)
-print("\n")
-print(fr)
-print("---")
-toTk = " [SEP] The schoolboy squirmed. Another two minutes? He knew he should stand at attention. The drillmaster's cane loomed large.Vindhya Himachal … He grunted in discomfort. This was unbearable. He considered making a dash; after all he was in the last row. What if the master noticed? The cane loomed again. He gritted his teeth. Tava shubha … This is it. He cast his eyes around.Jaya he …He started running.Jaya he …He was almost there.Jaya he … The chorus floated from afar. He was already in the toilet, heaving a relieved sigh."
-dic, fr = token(toTk, dic)
-print("\n")
-print(fr)
+# toTk = "[CLS] house house On a windy winter morning, a woman looked out of the window.The only thing she saw, a garden. A smile spread across her face as she spotted Maria, her daughter, in the middle of the garden enjoying the weather. It started drizzling. Maria started dancing joyfully.She tried to wave to her daughter, but her elbow was stuck, her arm hurt, her smile turned upside down. Reality came crashing down as the drizzle turned into a storm. Maria's murdered corpse consumed her mind.On a windy winter morning, a woman looked out of the window of her jail cell. [SEP]"
+# dic, fr = token(toTk, dic)
+# print("\n")
+# print(fr)
+# print("---")
+# toTk = " [SEP] The schoolboy squirmed. Another two minutes? He knew he should stand at attention. The drillmaster's cane loomed large.Vindhya Himachal … He grunted in discomfort. This was unbearable. He considered making a dash; after all he was in the last row. What if the master noticed? The cane loomed again. He gritted his teeth. Tava shubha … This is it. He cast his eyes around.Jaya he …He started running.Jaya he …He was almost there.Jaya he … The chorus floated from afar. He was already in the toilet, heaving a relieved sigh."
+# dic, fr = token(toTk, dic)
+# print("\n")
+# print(fr)
