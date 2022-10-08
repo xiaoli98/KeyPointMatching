@@ -2,9 +2,12 @@ from track_1_kp_matching import *
 
 import os
 import pandas as pd
+import random
+import tensorflow as tf
+import tqdm as tqdm
 
 
-from transformers import AutoTokenizer
+from transformers import BertTokenizer
 
 
 #TODO
@@ -131,7 +134,7 @@ class Label():
         self.__label = label
         
 
-def preprocess(path="kpm_data", subset="train"):
+def preprocess(path="kpm_data", subset="train", batch=16, shuffle=True):
     arguments_df, key_points_df, labels_file_df = readCSV(path, subset)#load_kpm_data(path, subset)
 
     labels = []
@@ -162,20 +165,41 @@ def preprocess(path="kpm_data", subset="train"):
         
     
     processedData = pd.DataFrame()
-    tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
+    tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
     
+
     data = []
+    targets = []
     
     for label in labels:
         argId = label.argId
         keyId = label.keyPointId
         if arguments[argId].stance == keyPoints[keyId].stance:
-            tokenized_data = tokenizer('[CLS]' + arguments[argId].argument + '[SEP]'+ keyPoints[keyId].key_point + '[SEP]', return_tensors="np")
-            data.append([
-                argId, keyId, tokenized_data, label.label
-            ])
+            data.append(arguments[argId].argument + '[SEP]'+ keyPoints[keyId].key_point)
+            targets.append(label.label)
+    
+    targets = tf.convert_to_tensor(targets)
+    pair = list(zip(data, targets))
+    if shuffle:
+        random.shuffle(pair)
+    data, targets = zip(*pair)
+        
+    print("total length: " + str(len(labels)))
+    train_set = tokenizer(data, padding=True, truncation=True, return_tensors="tf")
+    train_set['labels'] = targets
 
-    return data
+    if batch > 1:
+        print("preparing batches")
+        with tqdm(total=(len(data)/batch) + 1) as pbar:
+            batch_train_set = []
+            for i in range(0, len(data), batch):
+                #print("creating batch " + str(i) + ":" + (str(i+batch) if i+batch<len(data) else str(len(data))))
+                
+                encoded_dict = tokenizer.batch_encode_plus(data[i:i+batch],padding=True,truncation=True,return_tensors="tf")
+                encoded_dict['labels'] = targets[i:i+batch]
+                train_set.append(encoded_dict)
+                pbar.update(1)
+    return train_set
     
 def readCSV(path, subset):
     arguments_file = os.path.join(path, f"arguments_{subset}.csv")
@@ -194,5 +218,3 @@ def getRow(df, idToSearch, cl_name):
             return row
     return -1
     
-
-preprocess()
