@@ -121,151 +121,158 @@ class Label():
     @label.setter
     def label(self, label):
         self.__label = label
+    
+    
+class Data():
+    def __init__(self) -> None:
+        self.__training_data = None
+        self.__training_label = None
+        self.__validation_data = None
+        self.__validation_label = None
+        self.__test_data = None
+        self.__test_label = None
         
-
-def preprocess(path="kpm_data", subset="train", batch=16, shuffle=True):
-    arguments_df, key_points_df, labels_file_df = readCSV(path, subset)#load_kpm_data(path, subset)
-
-    labels = []
-    for _, row in labels_file_df.iterrows():
-        l = Label()
-        l.keyPointId = row["key_point_id"]
-        l.argId = row["arg_id"]
-        l.label = row["label"]
-        labels.append(l)
-
-    arguments = {}
-    for _, row in arguments_df.iterrows():
-        arg = Argument()
-        arg.argId = row["arg_id"]
-        arg.argument = row["argument"]
-        arg.topic = row["topic"]
-        arg.stance = row["stance"]
-        arguments[arg.argId] = arg 
-   
-    keyPoints = {}
-    for _, row in key_points_df.iterrows():
-       kp = KeyPoint()
-       kp.keyPointId = row['key_point_id']
-       kp.key_point = row['key_point']
-       kp.topic = row['topic']
-       kp.stance = row['stance']
-       keyPoints[kp.keyPointId] = kp
+        self.__tokenizer = None
         
-    tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
+    #region getter/setter
+    @property
+    def training_data(self):
+        return self.__training_data
     
-    data = []
-    targets = []
-    
-    for label in labels:
-        argId = label.argId
-        keyId = label.keyPointId
-        if arguments[argId].stance == keyPoints[keyId].stance:
-            data.append(arguments[argId].argument + '[SEP]'+ keyPoints[keyId].key_point)
-            targets.append(label.label)
-    
-    targets = tf.convert_to_tensor(targets)
-    pair = list(zip(data, targets))
-    if shuffle:
-        random.shuffle(pair)
-    data, targets = list(zip(*pair))
+    @training_data.setter
+    def training_data(self, training_data):
+        self.__training_data = training_data
         
-    print("total length: " + str(len(targets)))
-
-    train_set = tokenizer(data, padding=True, truncation=True, return_tensors="tf")
-    train_set['labels'] = targets
-    train_set['batches'] = 1
-
-    if batch > 1:
-        print("preparing batches")
-        with tqdm(total=int((len(data)/batch) + 1)) as pbar:
-            batch_train_set = {'input_ids':[], 
-                               'token_type_ids': [],
-                               'attention_mask': [],
-                               'labels': []
-                               }
-            for i in range(0, len(data), batch):
-                #print("creating batch " + str(i) + ":" + (str(i+batch) if i+batch<len(data) else str(len(data))))
-                
-                batch_train_set['input_ids'].append(train_set['input_ids'][i:i+batch])
-                batch_train_set['token_type_ids'].append(train_set['token_type_ids'][i:i+batch])
-                batch_train_set['attention_mask'].append(train_set['attention_mask'][i:i+batch])
-                batch_train_set['labels'].append(targets[i:i+batch])
-                # train_set.append(encoded_dict)
-                pbar.update(1)
-            train_set = batch_train_set
-            train_set['batches'] = int((len(data)/batch) + 1)
-    return train_set
+    @property
+    def training_label(self):
+        return self.__training_label
     
-def readCSV(path, subset):
-    arguments_file = os.path.join(path, f"arguments_{subset}.csv")
-    key_points_file = os.path.join(path, f"key_points_{subset}.csv")
-    labels_file = os.path.join(path, f"labels_{subset}.csv")
-       
-    arguments_df = pd.read_csv(arguments_file)
-    key_points_df = pd.read_csv(key_points_file)
-    labels_file_df = pd.read_csv(labels_file)
-
-    return arguments_df, key_points_df, labels_file_df
-
-def getRow(df, idToSearch, cl_name):
-    for index, row in df.iterrows():
-        if(row[cl_name] == idToSearch):
-            return row
-    return -1
+    @training_label.setter
+    def training_label(self, training_label):
+        self.__training_label = training_label
+        
+    @property
+    def validation_data(self):
+        return self.__validation_data
     
-
-import nltk
-from nltk import word_tokenize as tokenizer
-from nltk.corpus import stopwords
-from nltk.stem.porter import PorterStemmer as stemmer
-import string
-
-def token(toTokanize, dictionary):
-    newDic = dictionary
+    @validation_data.setter
+    def validation_data(self, validation_data):
+        self.__validation_data = validation_data
+        
+    @property
+    def validation_label(self):
+        return self.__validation_label
     
-    words_toID = []
-    stop_words = stopwords.words('english')
-    porter = stemmer()
-
-    filtered_words = toTokanize.lower() #to lower case
-    filtered_words = "".join([char for char in filtered_words if char not in string.punctuation]) # remove punctuation 
-    filtered_words = tokenizer(filtered_words, "english")   # tokenize
-    filtered_words = [word for word in filtered_words if word not in stop_words] # remove stopwords (try without removing during training)
-    filtered_words = [porter.stem(word) for word in filtered_words] #stemming
-
-    for word in filtered_words:
-        for w_in, index in newDic.items():
-            if w_in == word:
-                words_toID.append(index)
-                break
-        _, index = list(newDic.items())[-1]
-        newDic[word] = index + 1
-        words_toID.append(index + 1)
-    return newDic, words_toID
-
-#preprocess()
-
-def load_vocab_file():
-    dictionary = {"[CLS]":0,"[SEP]":1}
-    with open('words_alpha.txt') as word_file:
-        valid_words = set(word_file.read().split())
-    _, index = list(dictionary.items())[-1]
+    @validation_label.setter
+    def validation_label(self, validation_label):
+        self.__validation_label = validation_label
+        
+    @property
+    def test_data(self):
+        return self.__test_data
     
-    for word in valid_words:
-        dictionary[word] = index + 1
-        index+=1       
+    @test_data.setter
+    def test_data(self, test_data):
+        self.__test_data = test_data
+        
+    @property
+    def test_label(self):
+        return self.__test_label
+    
+    @test_label.setter
+    def test_label(self, test_label):
+        self.__test_label = test_label
+        
+    @property
+    def tokenizer(self):
+        return self.__tokenizer;
+    @tokenizer.setter
+    def tokenizer(self, tokenizer):
+        self.__tokenizer = tokenizer
 
-    return dictionary
+    #endregion 
+    
+        """read arguments, keypoints and label files
+        """
+    def readCSV(self, path, subset):
+        arguments_file = os.path.join(path, f"arguments_{subset}.csv")
+        key_points_file = os.path.join(path, f"key_points_{subset}.csv")
+        labels_file = os.path.join(path, f"labels_{subset}.csv")
+        
+        arguments_df = pd.read_csv(arguments_file)
+        key_points_df = pd.read_csv(key_points_file)
+        labels_file_df = pd.read_csv(labels_file)
 
-# dic = load_vocab_file()
+        return arguments_df, key_points_df, labels_file_df
+    
+    
+    """read csv data from path and the file format should be ./path/filename_{subset}.csv
+    filename should be in [arguments, key_points, labels]
+    subset should be in [train, dev, test]
+    """
+    def get_data_from(self, path="kpm_data", subset="train"):
+        arguments_df, key_points_df, labels_file_df = self.readCSV(path, subset)#load_kpm_data(path, subset)
 
-# toTk = "[CLS] house house On a windy winter morning, a woman looked out of the window.The only thing she saw, a garden. A smile spread across her face as she spotted Maria, her daughter, in the middle of the garden enjoying the weather. It started drizzling. Maria started dancing joyfully.She tried to wave to her daughter, but her elbow was stuck, her arm hurt, her smile turned upside down. Reality came crashing down as the drizzle turned into a storm. Maria's murdered corpse consumed her mind.On a windy winter morning, a woman looked out of the window of her jail cell. [SEP]"
-# dic, fr = token(toTk, dic)
-# print("\n")
-# print(fr)
-# print("---")
-# toTk = " [SEP] The schoolboy squirmed. Another two minutes? He knew he should stand at attention. The drillmaster's cane loomed large.Vindhya Himachal … He grunted in discomfort. This was unbearable. He considered making a dash; after all he was in the last row. What if the master noticed? The cane loomed again. He gritted his teeth. Tava shubha … This is it. He cast his eyes around.Jaya he …He started running.Jaya he …He was almost there.Jaya he … The chorus floated from afar. He was already in the toilet, heaving a relieved sigh."
-# dic, fr = token(toTk, dic)
-# print("\n")
-# print(fr)
+        label_cols = {}
+        for i, col in enumerate(labels_file_df.columns):
+            label_cols[col] = i
+        labels = []
+        for row in labels_file_df.to_numpy().tolist():
+            l = Label()
+            l.keyPointId = row[label_cols["key_point_id"]]
+            l.argId = row[label_cols["arg_id"]]
+            l.label = row[label_cols["label"]]
+            labels.append(l)
+
+        arg_cols = {}
+        for i, col in enumerate(arguments_df.columns):
+            arg_cols[col] = i
+        arguments = {}
+        for row in arguments_df.to_numpy().tolist():
+            arg = Argument()
+            arg.argId = row[arg_cols["arg_id"]]
+            arg.argument = row[arg_cols["argument"]]
+            arg.topic = row[arg_cols["topic"]]
+            arg.stance = row[arg_cols["stance"]]
+            arguments[arg.argId] = arg
+
+        keyPoints_cols = {}
+        for i, col in enumerate(key_points_df.columns):
+            keyPoints_cols[col] = i
+        keyPoints = {}
+        for row in key_points_df.to_numpy().tolist():
+           kp = KeyPoint()
+           kp.keyPointId = row[keyPoints_cols['key_point_id']]
+           kp.key_point = row[keyPoints_cols['key_point']]
+           kp.topic = row[keyPoints_cols['topic']]
+           kp.stance = row[keyPoints_cols['stance']]
+           keyPoints[kp.keyPointId] = kp
+
+        tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
+
+        data = []
+        targets = []
+
+        for label in labels:
+            argId = label.argId
+            keyId = label.keyPointId
+            if arguments[argId].stance == keyPoints[keyId].stance:
+                data.append(arguments[argId].argument + '[SEP]'+ keyPoints[keyId].key_point)
+                targets.append(label.label)
+
+        print("length of {} data: {}" .format(subset, str(len(data))))
+        print("length of {} labels: {}".format(subset, str(len(targets))))
+
+        tokenized_data = tokenizer(data, padding=True, truncation=True)
+        tokenized_data = tf.data.Dataset.from_tensor_slices((dict(tokenized_data), targets))
+        
+        if subset == 'train':
+            self.training_data = tokenized_data
+            self.training_label = targets
+        elif subset == 'dev':
+            self.validation_data = tokenized_data
+            self.validation_label = targets
+        elif subset == 'test':
+            self.test_data = tokenized_data
+            self.test_label = targets
+    
