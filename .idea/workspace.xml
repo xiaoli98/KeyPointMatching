@@ -3,7 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="d22ad325-d08d-4198-8522-d046872769fb" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/dataPreprocess.py" beforeDir="false" afterPath="$PROJECT_DIR$/dataPreprocess.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

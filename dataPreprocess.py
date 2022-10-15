@@ -3,7 +3,6 @@ from track_1_kp_matching import *
 
 import os
 import pandas as pd
-import random
 import tensorflow as tf
 from tqdm import tqdm
 
