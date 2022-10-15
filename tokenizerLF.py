@@ -2,11 +2,13 @@ import nltk
 from nltk import word_tokenize as tokenizer
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer as stemmer
+import numpy as np
+from tqdm import tqdm
 import string
 from track_1_kp_matching import *
 import time
 
-def tokenizeLF(toTokanize, dictionary):
+def tokenizeLF(toTokenize, dictionary):
     newDic = dictionary
     
     words_toID = []
@@ -14,37 +16,69 @@ def tokenizeLF(toTokanize, dictionary):
     mask = 0
     
     stop_words = stopwords.words('english')
+    print("STOP WORDS")
+    print(stop_words)
     porter = stemmer()
 
-    filtered_words = toTokanize.lower() #to lower case
+    print(toTokenize)
+    filtered_words = toTokenize.lower() #to lower case
+    print("*" *40)
+    print('after lower')
+    print(filtered_words)
     filtered_words = "".join([char for char in filtered_words if char not in string.punctuation]) # remove punctuation 
+    print("*" *40)
+    print("after removing punctuation")
+    print(filtered_words)
     #filtered_words = tokenizer(filtered_words, "english")   # tokenize
-    filtered_words = [word for word in filtered_words if word not in stop_words] # remove stopwords (try without removing during training)
+    filtered_words = [word for word in filtered_words if not word in stop_words] # remove stopwords (try without removing during training)
+    print("*" *40)
+    print("after removing stopwords")
+    print(filtered_words)
     filtered_words = [porter.stem(word) for word in filtered_words] #stemming
-
+    print("*" *40)
+    print("after stemming")
+    print(filtered_words)
+    input()
+    
+    index = len(newDic)
     for word in filtered_words:
         if word != " ":
-            found = False
-            for w_in, index in newDic.items():
-                if w_in == word and (word != "cl" and word != "sep"):
-                    words_toID.append(index)
-                    words_mask.append(mask)
-                    found = True
-                    break
-                elif word == "cl":
-                    words_toID.append(1)
-                    found = True
-                    break
-                elif word == "sep":
-                    words_toID.append(2)
-                    mask+=1
-                    found = True
-                    break
-        
-            if(found == False):    
-                _, index = list(newDic.items())[-1]
-                newDic[word] = index + 1
-                words_toID.append(index + 1)
+            if word=='cl':
+                words_toID.append(1)
+            elif word == 'sep':
+                words_toID.append(2)
+                mask+=1
+            elif word in newDic.keys():
+                words_toID.append(newDic[word])
+                words_mask.append(mask)
+                
+            # il dizionario e' efficiente se si usa la key per la ricerca
+            
+            # found = False
+            # for w_in, index in newDic.items():
+            #     if w_in == word and (word != "cl" and word != "sep"):
+            #         words_toID.append(index)
+            #         words_mask.append(mask)
+            #         found = True
+            #         break
+            #     elif word == "cl":
+            #         words_toID.append(1)
+            #         found = True
+            #         break
+            #     elif word == "sep":
+            #         words_toID.append(2)
+            #         mask+=1
+            #         found = True
+            #         break
+            else: 
+                # convertire il dizionario in lista ogni volta che trovo una nuova parola
+                # e trovare l'ultima posizione costa troppo
+                # ho fatto un indice sopra che da' la lunghezza del dizionario, e se trovo un nuovo elemento me lo incrementa
+                 
+                # _, index = list(newDic.items())[-1]
+                index += 1
+                newDic[word] = index
+                words_toID.append(index)
                 words_mask.append(mask)
     
     
@@ -52,7 +86,7 @@ def tokenizeLF(toTokanize, dictionary):
 
 
 def load_vocab_file():
-    dictionary = {" ": 0, "[CLS]":1,"[SEP]":2}
+    dictionary = {" ": 0, "[cls]":1,"[sep]":2}
     with open('words_alpha.txt') as word_file:
         valid_words = set(word_file.read().split())
     _, index = list(dictionary.items())[-1]
@@ -90,7 +124,7 @@ tp = arguments_df['topic']
 toTk = []
 i = 0
 for a in ar:
-    toTk.append("[CLS]"+a+"[SEP]"+tp[i])
+    toTk.append("[CLS] "+a+" [SEP] "+tp[i])
     i+=1
 #print(toTk)
 
@@ -101,23 +135,25 @@ maxLen = 128
 
 tic = time.perf_counter()
 i = 0
-for tt in toTk:
-    
-    dic, afr, amask = tokenizeLF(tt, dic)
-    fr.append(afr)
-    amask.append(amask)
-    
-    if len(afr) > maxLen:
-        maxLen = len(afr)        
+with tqdm(total=len(toTk)) as pbar:
+    for tt in toTk:
+        dic, afr, amask = tokenizeLF(tt, dic)
+        fr.append(afr)
+        amask.append(amask)
         
-    print("processed " + str(i) +" out of "+ str(len(toTk)) + "\r")
-    i+=1 
-    #print(afr)
-    #print("\n")
-    #print(amask)
-    #print("---")
+        if len(afr) > maxLen:
+            maxLen = len(afr)        
+            
+        # print("processed " + str(i) +" out of "+ str(len(toTk)) + "\r")
+        i+=1 
+        # pbar.update(1)
+        #print(afr)
+        #print("\n")
+        #print(amask)
+        #print("---")
 
 tokenized = padArray(fr)
 toc = time.perf_counter()
-print(fr[1])
+print(tokenized[0])
+
 print(f"tokenized in {toc - tic:0.4f} seconds")
