@@ -190,70 +190,6 @@ class Data():
     def tokenizer(self, tokenizer):
         self.__tokenizer = tokenizer
 
-<<<<<<< HEAD
-def preprocess(path="kpm_data", subset="train"):
-    arguments_df, key_points_df, labels_file_df = readCSV(path, subset)#load_kpm_data(path, subset)
-
-    labels = []
-    for _, row in labels_file_df.iterrows():
-        l = Label()
-        l.keyPointId = row["key_point_id"]
-        l.argId = row["arg_id"]
-        l.label = row["label"]
-        labels.append(l)
-
-    arguments = {}
-    for _, row in arguments_df.iterrows():
-        arg = Argument()
-        arg.argId = row["arg_id"]
-        arg.argument = row["argument"]
-        arg.topic = row["topic"]
-        arg.stance = row["stance"]
-        arguments[arg.argId] = arg 
-   
-    keyPoints = {}
-    for _, row in key_points_df.iterrows():
-       kp = KeyPoint()
-       kp.keyPointId = row['key_point_id']
-       kp.key_point = row['key_point']
-       kp.topic = row['topic']
-       kp.stance = row['stance']
-       keyPoints[kp.keyPointId] = kp
-        
-    
-    processedData = pd.DataFrame()
-    tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
-    
-    data = []
-    
-    for label in labels:
-        argId = label.argId
-        keyId = label.keyPointId
-        if arguments[argId].stance == keyPoints[keyId].stance:
-            tokenized_data = tokenizer('[CLS]' + arguments[argId].argument + '[SEP]'+ keyPoints[keyId].key_point + '[SEP]', return_tensors="np")
-            data.append([
-                argId, keyId, tokenized_data, label.label
-            ])
-
-    return data
-    
-def readCSV(path, subset):
-    arguments_file = os.path.join(path, f"arguments_{subset}.csv")
-    key_points_file = os.path.join(path, f"key_points_{subset}.csv")
-    labels_file = os.path.join(path, f"labels_{subset}.csv")
-       
-    arguments_df = pd.read_csv(arguments_file)
-    key_points_df = pd.read_csv(key_points_file)
-    labels_file_df = pd.read_csv(labels_file)
-
-    return arguments_df, key_points_df, labels_file_df
-
-def getRow(df, idToSearch, cl_name):
-    for index, row in df.iterrows():
-        if(row[cl_name] == idToSearch):
-            return row
-    return -1
-=======
     #endregion 
     
         """read arguments, keypoints and label files
@@ -340,4 +276,3 @@ def getRow(df, idToSearch, cl_name):
             self.test_data = tokenized_data
             self.test_label = targets
     
->>>>>>> eee6c9104064ef8b180f4718cdee8ea82181cbe5
