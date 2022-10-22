@@ -16,29 +16,29 @@ def tokenizeLF(toTokenize, dictionary):
     mask = 0
     
     stop_words = stopwords.words('english')
-    print("STOP WORDS")
-    print(stop_words)
+    #print("STOP WORDS")
+    #print(stop_words)
     porter = stemmer()
 
-    print(toTokenize)
+    #print(toTokenize)
     filtered_words = toTokenize.lower() #to lower case
-    print("*" *40)
-    print('after lower')
-    print(filtered_words)
+    #print("*" *40)
+    #print('after lower')
+    #print(filtered_words)
     filtered_words = "".join([char for char in filtered_words if char not in string.punctuation]) # remove punctuation 
-    print("*" *40)
-    print("after removing punctuation")
-    print(filtered_words)
-    #filtered_words = tokenizer(filtered_words, "english")   # tokenize
+    #print("*" *40)
+    #print("after removing punctuation")
+    #print(filtered_words)
+    filtered_words = tokenizer(filtered_words, "english")   # tokenize
     filtered_words = [word for word in filtered_words if not word in stop_words] # remove stopwords (try without removing during training)
-    print("*" *40)
-    print("after removing stopwords")
-    print(filtered_words)
+    #print("*" *40)
+    #print("after removing stopwords")
+    #print(filtered_words)
     filtered_words = [porter.stem(word) for word in filtered_words] #stemming
-    print("*" *40)
-    print("after stemming")
-    print(filtered_words)
-    input()
+    #print("*" *40)
+    #print("after stemming")
+    #print(filtered_words)
+    #input()
     
     index = len(newDic)
     for word in filtered_words:
@@ -144,7 +144,7 @@ with tqdm(total=len(toTk)) as pbar:
         if len(afr) > maxLen:
             maxLen = len(afr)        
             
-        # print("processed " + str(i) +" out of "+ str(len(toTk)) + "\r")
+        print("processed " + str(i) +" out of "+ str(len(toTk)) + "\r")
         i+=1 
         # pbar.update(1)
         #print(afr)
@@ -154,6 +154,6 @@ with tqdm(total=len(toTk)) as pbar:
 
 tokenized = padArray(fr)
 toc = time.perf_counter()
-print(tokenized[0])
-
+print(fr[0])
+print(amask[0])
 print(f"tokenized in {toc - tic:0.4f} seconds")
