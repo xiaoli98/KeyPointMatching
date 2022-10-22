@@ -25,27 +25,42 @@ def tokenizeLF(toTokenize, dictionary):
     #print("*" *40)
     #print('after lower')
     #print(filtered_words)
-    filtered_words = "".join([char for char in filtered_words if char not in string.punctuation]) # remove punctuation 
+
+    filtered_words = "".join([char for char in filtered_words if (char not in string.punctuation)]) # remove punctuation 
     #print("*" *40)
     #print("after removing punctuation")
     #print(filtered_words)
     filtered_words = tokenizer(filtered_words, "english")   # tokenize
+    #print("*" *40)
+    #print("after tokenizer")
+    #print(filtered_words)
     filtered_words = [word for word in filtered_words if not word in stop_words] # remove stopwords (try without removing during training)
     #print("*" *40)
     #print("after removing stopwords")
     #print(filtered_words)
-    filtered_words = [porter.stem(word) for word in filtered_words] #stemming
+    #print(len(filtered_words))
+    stemmed_words = []
+
+    for word in filtered_words:
+        if(word != "cls" and word != "sep"):
+            stemmed_words.append(porter.stem(word))
+        elif word == "cls":
+            stemmed_words.append("[CLS]")
+        else:
+            stemmed_words.append("[SEP]")
+    
+    #filtered_words = [porter.stem(word) for word in filtered_words if(word != "cls" and word != "sep")] #stemming
     #print("*" *40)
     #print("after stemming")
-    #print(filtered_words)
-    #input()
+    #print(stemmed_words)
+    
     
     index = len(newDic)
-    for word in filtered_words:
+    for word in stemmed_words:
         if word != " ":
-            if word=='cl':
+            if word=='[CLS]':
                 words_toID.append(1)
-            elif word == 'sep':
+            elif word == '[SEP]':
                 words_toID.append(2)
                 mask+=1
             elif word in newDic.keys():
@@ -80,13 +95,14 @@ def tokenizeLF(toTokenize, dictionary):
                 newDic[word] = index
                 words_toID.append(index)
                 words_mask.append(mask)
-    
+    #print(words_toID)
+    #input()
     
     return newDic, words_toID, words_mask
 
 
 def load_vocab_file():
-    dictionary = {" ": 0, "[cls]":1,"[sep]":2}
+    dictionary = {" ": 0, "[CLS]":1,"[SEP]":2}
     with open('words_alpha.txt') as word_file:
         valid_words = set(word_file.read().split())
     _, index = list(dictionary.items())[-1]
