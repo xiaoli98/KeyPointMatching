@@ -23,7 +23,7 @@ batch = 16
 
 print("start training")
 
-model.fit(data.shuffle(1000).batch(batch), epochs=epochs, batch_size=batch, verbose=1)
+model.fit(data.shuffle(1000).batch(batch), epochs=epochs, batch_size=batch, verbose=2)
 # logits = []
 # for e in range(epochs):#for each epoch
 #     print("="*20 + "EPOCH: " + str(e) + "="*20)

@@ -8,7 +8,7 @@ import string
 from track_1_kp_matching import *
 import time
 
-def tokenizeLF(toTokenize, dictionary):
+def tokenize_LF(toTokenize, dictionary, vocab_path = 'words_alpha.txt'):
     newDic = dictionary
     
     words_toID = []
@@ -95,15 +95,20 @@ def tokenizeLF(toTokenize, dictionary):
                 newDic[word] = index
                 words_toID.append(index)
                 words_mask.append(mask)
+                
+                with open(vocab_path, 'a') as word_file:
+                    word_file.write(word+'\n')
+                    
+                
     #print(words_toID)
     #input()
     
     return newDic, words_toID, words_mask
 
 
-def load_vocab_file():
+def load_vocab_file(vocab_path = 'words_alpha.txt'):
     dictionary = {" ": 0, "[CLS]":1,"[SEP]":2}
-    with open('words_alpha.txt') as word_file:
+    with open(vocab_path) as word_file:
         valid_words = set(word_file.read().split())
     _, index = list(dictionary.items())[-1]
     
@@ -113,22 +118,72 @@ def load_vocab_file():
 
     return dictionary
 
-def padSeq(toPad, newLeng, pad = 0):
+def padSeq(toPad, newLeng, pad = 0, attention_mask = False):
     padded = []
     padded = toPad
 
+    attention = []
+    if attention_mask:
+        attention =  [1] * len(toPad)
+    
+    
     while newLeng > len(padded):
         padded.append(pad)
-
-    return padded
-
-def padArray(toPad, pad = 0):
-    padded = []
-
-    for f in fr:
-        padded.append(padSeq(f, maxLen, pad))
+        if attention_mask:
+            attention.append(0)
         
+    if attention_mask:
+        return padded, attention   
     return padded
+
+def padArray(toPad, pad_len = 128, pad = 0, attention_mask = False):
+    padded = []
+    attention = []
+
+    for f in toPad:
+        if attention_mask:
+            pad, att = padSeq(f,pad_len,pad,attention_mask)
+            padded.append(pad)
+            attention.append(att)
+        else:
+            padded.append(padSeq(f, pad_len, pad))
+        
+    if attention_mask:
+        return padded, attention
+    return padded
+
+def tk_to_phrase(tokanized_phrase):
+    
+    vocab = load_vocab_file()
+    phrase = []
+    vocab_as_list = []
+    a = 0
+    for key in vocab.items():
+        vocab_as_list.append([key,a])
+    
+    print(len(vocab_as_list))
+    for w in tokanized_phrase:
+        phrase.append(vocab_as_list[w-1])    
+    return phrase
+
+
+dic = {"aaa": [[1,2,3],[1,1,1,1,1]], "bb":[[12,0,0],[222,5,7]], }
+print(dic)
+# add attention mask 1 where is the original phrase 0 where is padding
+"""
+vocab = load_vocab_file()
+toTk = "[CLS] house house On a windy winter morning [SEP] a woman"
+vocab, tkz, mask = tokenize_LF(toTokenize=toTk, dictionary=vocab)
+pa = []
+pa.append(tkz)
+print(tkz)
+tokenized_data, tokenized_attention = padArray(pa, 50,0,True)
+print(tokenized_data, tokenized_attention)
+print (len(tokenized_data[0]))
+print(len(tokenized_attention[0]))
+
+
+
 
 dic = load_vocab_file()
 
@@ -173,3 +228,6 @@ toc = time.perf_counter()
 print(fr[0])
 print(amask[0])
 print(f"tokenized in {toc - tic:0.4f} seconds")
+
+    
+"""

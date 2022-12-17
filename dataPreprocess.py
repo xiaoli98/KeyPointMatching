@@ -5,6 +5,9 @@ import os
 import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
+from tokenizerLF import *
+from tokenizerLF import tokenize_LF
+
 
 class Argument:
 
@@ -247,8 +250,16 @@ class Data():
            kp.stance = row[keyPoints_cols['stance']]
            keyPoints[kp.keyPointId] = kp
 
-        tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
-
+        #tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
+        
+        vocab = load_vocab_file()
+        tokenized_data = []
+        tokenized_mask = []
+        tokenized_attention = []
+        maxLen = 10
+        
+        printfrase = ""
+        a=0
         data = []
         targets = []
 
@@ -256,14 +267,43 @@ class Data():
             argId = label.argId
             keyId = label.keyPointId
             if arguments[argId].stance == keyPoints[keyId].stance:
-                data.append(arguments[argId].argument + '[SEP]'+ keyPoints[keyId].key_point)
+                #data.append('[CLS] '+arguments[argId].argument + ' [SEP] '+ keyPoints[keyId].key_point)
+                to_tokenize = '[CLS] '+arguments[argId].argument + ' [SEP] '+ keyPoints[keyId].key_point
                 targets.append(label.label)
+                vocab, tkz, mask = tokenize_LF(toTokenize=to_tokenize,dictionary=vocab)
+                if a == 0:
+                    printfrase = to_tokenize
+                    a+=1
+                
+                if len(tkz) > maxLen:
+                    maxLen = len(tkz) 
+                
+                tokenized_data.append(tkz)
+                tokenized_mask.append(mask)
 
-        print("length of {} data: {}" .format(subset, str(len(data))))
+        tokenized_data, tokenized_attention = padArray(tokenized_data, maxLen,0,True)
+        tokenized_mask = padArray(tokenized_mask, maxLen, 1)
+        
+        print("length of {} data: {}" .format(subset, str(len(tokenized_data))))
+        print("length of {} mask: {}".format(subset, str(len(tokenized_mask))))
+        print("length of {} attention: {}".format(subset, str(len(tokenized_attention))))
         print("length of {} labels: {}".format(subset, str(len(targets))))
 
-        tokenized_data = tokenizer(data, padding=True, truncation=True)
-        tokenized_data = tf.data.Dataset.from_tensor_slices((dict(tokenized_data), targets))
+        #print("original phrase ", printfrase)
+        #print("frase ",tk_to_phrase(tokenized_data[0]))
+        print("data", tokenized_data[0])
+        print("mask", tokenized_mask[0])
+        print("att", tokenized_attention[0])
+        #tokenized_data.append(tokenized_mask)
+        #tokenized_data = tokenizer(data, padding=True, truncation=True)
+        
+        #tokenized = dict(zip(["input_ids","attention_mask","token_type_ids"],[tokenized_data, tokenized_attention, tokenized_mask]))
+        tokenized = {"input_ids":tokenized_data, "attention_mask":tokenized_attention, "token_type_ids":tokenized_mask}
+        
+        print("here 2")
+        
+        tokenized_data = tf.data.Dataset.from_tensor_slices(tokenized, targets)
+        print("here 3")
         
         if subset == 'train':
             self.training_data = tokenized_data
