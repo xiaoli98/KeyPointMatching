@@ -1,3 +1,5 @@
+import BertLayer
+
 import numpy as np
 import tensorflow as tf
 
@@ -37,6 +39,12 @@ class DistanceLayer(keras.layers.layer):
         b = set(b.split())
         c = a.intersection(b)
         return float(len(c)) / (len(a) + len(b) - len(c))
+
+    def get_vectors(self, *strs):
+        text = [t for t in strs]
+        vectorizer = CountVectorizer(text)
+        vectorizer.fit(text)
+        return vectorizer.transform(text).toarray()
     
     def cosine_sim(self, a:str, b:str)->float:
         """compute cosine similarity
@@ -68,16 +76,32 @@ class DistanceLayer(keras.layers.layer):
         an_distance =distance(anchor, negative)
         return (ap_distance, an_distance)
 
-class SiameseBert(keras.Model):
+class SiameseBert(keras.layers.Layer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        BertModel = bert.from_pretrained("bert-base-uncased")
+        self.classifier = tf.keras.Sequential()
+        self.bert = BertLayer(self.classifier)
+        self.bert.add(keras.layers.Dense(64, activation = 'relu'))
+        self.bert.add(keras.layers.Dropout(0.2))
+        self.bert.add(keras.layers.Dense(128, activation = 'relu'))
+        self.bert.add(keras.layers.Dense(1, activation = 'sigmoid'))
         
-    def get_vectors(self, *strs):
-        text = [t for t in strs]
-        vectorizer = CountVectorizer(text)
-        vectorizer.fit(text)
-        return vectorizer.transform(text).toarray()
+        self.distance = DistanceLayer()
         
-    def call(self):
-        pass
+        # attributes
+        self.metric = None
+        for kwarg, value in kwargs.items():
+            if kwarg == 'metric':
+                self.metric = value
+        
+    def call(self, X, positive, negative):
+        output_x = self.bert(X)
+        output_positive = self.bert(positive)
+        output_negative = self.bert(negative)
+        
+        distance = self.distance(output_x, output_positive, output_negative, metric = self.metric)
+        
+        return distance
+        
+
+        
