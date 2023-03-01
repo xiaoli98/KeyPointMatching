@@ -3,7 +3,7 @@ import pandas as pd
 
 from dataPreprocess import *
 from transformers import TFBertForSequenceClassification as bert
-from Siamese import SiameseBert
+from src.Siamese import SiameseBert
 
 data = Data()
 data.get_data_from(path="kpm_data", subset="train")
@@ -42,6 +42,9 @@ model.fit(data.shuffle(1000).batch(batch), epochs=epochs, batch_size=batch, verb
 #         # if step % 10 == 0:
 #         #       print("Training loss at step %d: %f" %(step, output["loss"]))
 
+def create_triplets():
+    pass
+
 
 class Siamese_Model(tf.keras.Model):
     def __init__(self, *args, **kwargs):
@@ -76,8 +79,3 @@ class Siamese_Model(tf.keras.Model):
         loss = ap_distance - an_distance
         loss = tf.maximum(loss + self.margin, 0.0)
         return loss
-
-
-siamese_model = Siamese_Model()
-siamese_model.compile(optimizer=tf.keras.optimizers.Adam(0.0001))
-# siamese_model.fit(train_dataset, epochs=1, validation_data=val_dataset)
