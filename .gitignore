@@ -1,4 +1,7 @@
 .env/
 
-__pychache__/
+__pycache__/
 
+src/corpuses
+
+*.tkn
