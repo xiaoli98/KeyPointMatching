@@ -1,7 +1,7 @@
 import tensorflow as tf
 import pandas as pd
 
-from dataPreprocess import *
+from src.dataPreprocess import *
 from transformers import TFBertForSequenceClassification as bert
 from src.Siamese import SiameseBert
 

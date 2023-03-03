@@ -9,7 +9,7 @@ from tokenizers import decoders
 
 
 class KPMTokernizer():
-    def __init__(self, *args, **kwargs):
+    def __init__(self, pretrained = None, *args, **kwargs):
         """define the tokenizer pipeline, which consist of:
         1- token normalizers, we apply these normalizers as a pipe to all tokens
         2- pre tokenization process, or better how do we split the text
@@ -32,8 +32,10 @@ class KPMTokernizer():
             
         if unk_token is None:
             unk_token = "[UNK]"
-        if tokenizer is None:
+        if tokenizer is None and pretrained is None:
             tokenizer = Tokenizer(WordPiece(unk_token))
+        elif pretrained is not None:
+            tokenizer = Tokenizer.from_pretrained(pretrained)
         if normalizers is None:
             normalizers = [NFD(), Lowercase(), StripAccents()]
         if pre_tokenizer is None:
@@ -56,7 +58,7 @@ class KPMTokernizer():
         self.tokenizer.post_processor = post_processor
         self.tokenizer.decoder = decoder
         
-    def train(self, files, save_path, trainer=WordPieceTrainer, **kwargs):
+    def train(self, files, save_path=None, trainer=WordPieceTrainer, **kwargs):
         """train the tokenizer with a trainer
 
         Args:
@@ -64,8 +66,12 @@ class KPMTokernizer():
             save_path (string): the path to save the .json file of the train
             trainer (Trainer, optional): trainer to be used to do the tokenization. Defaults to WordPieceTrainer.
         """
+        print("training the tokenizer...", end="")
         self.tokenizer.train(files, trainer(**kwargs))
-        self.tokenizer.save(save_path)
+        
+        if save_path is not None:
+            self.tokenizer.save(save_path)
+        print("done")
         
     def encode(self, text):
         return self.tokenizer.encode(text)
