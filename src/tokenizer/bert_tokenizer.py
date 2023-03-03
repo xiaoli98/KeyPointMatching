@@ -2,7 +2,8 @@ from tokenizers import Tokenizer
 from tokenizers.models import WordPiece
 from tokenizers import normalizers
 from tokenizers.normalizers import NFD, Lowercase, StripAccents
-from tokenizers.pre_tokenizers import Whitespace
+from tokenizers import pre_tokenizers
+from tokenizers.pre_tokenizers import Whitespace, Punctuation
 from tokenizers.processors import TemplateProcessing
 from tokenizers.trainers import WordPieceTrainer
 from tokenizers import decoders
@@ -16,13 +17,22 @@ class KPMTokernizer():
         3- a tokenizer algorithm, eventually specifying the unknown token 
         4- post tokenization process, how do we want the final output of our tokenizer
         """
+        
+        unk_token = None
+        tokenizer = None
+        pretrained = None
+        normalizers_list = None
+        pre_tokenizer_list = None
+        post_processor = None
+        decoder = None
+        
         for kw, value in kwargs.items():
             if kw == "tokenizer":
                 tokenizer = value
             elif kw == "normalizers":
-                normalizers = value
+                normalizers_list = value
             elif kw == "pre_tokenizer":
-                pre_tokenizer = value
+                pre_tokenizer_list = value
             elif kw == "post_processor":
                 post_processor = value
             elif kw == "unk_token":
@@ -33,13 +43,13 @@ class KPMTokernizer():
         if unk_token is None:
             unk_token = "[UNK]"
         if tokenizer is None and pretrained is None:
-            tokenizer = Tokenizer(WordPiece(unk_token))
+            tokenizer = Tokenizer(WordPiece(unk_token=unk_token))
         elif pretrained is not None:
             tokenizer = Tokenizer.from_pretrained(pretrained)
-        if normalizers is None:
-            normalizers = [NFD(), Lowercase(), StripAccents()]
-        if pre_tokenizer is None:
-            pre_tokenizer = Whitespace()
+        if normalizers_list is None:
+            normalizers_list = [NFD(), Lowercase(), StripAccents()]
+        if pre_tokenizer_list is None:
+            pre_tokenizer_list = [Whitespace(), Punctuation(behavior="removed")]
         if post_processor is None:
             post_processor = TemplateProcessing(
                 single="[CLS] $A [SEP]",
@@ -53,8 +63,8 @@ class KPMTokernizer():
             decoder = decoders.WordPiece()
         
         self.tokenizer = tokenizer
-        self.tokenizer.normalizer = normalizers.Sequence(normalizers)
-        self.tokenizer.pre_tokenizer = pre_tokenizer
+        self.tokenizer.normalizer = normalizers.Sequence(normalizers_list)
+        self.tokenizer.pre_tokenizer = pre_tokenizers.Sequence(pre_tokenizer_list)
         self.tokenizer.post_processor = post_processor
         self.tokenizer.decoder = decoder
         
@@ -71,7 +81,7 @@ class KPMTokernizer():
         
         if save_path is not None:
             self.tokenizer.save(save_path)
-        print("done")
+        print("done!")
         
     def encode(self, text):
         return self.tokenizer.encode(text)
