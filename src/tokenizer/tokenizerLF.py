@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(1, "../KeyPointMatching/src")
+
 import nltk
 from nltk import word_tokenize as tokenizer
 from nltk.corpus import stopwords
@@ -7,15 +10,17 @@ from tqdm import tqdm
 import string
 from track_1_kp_matching import *
 import time
-
+ 
 def tokenize_LF(toTokenize, dictionary, vocab_path = 'words_alpha.txt'):
     newDic = dictionary
     
     words_toID = []
     words_mask = []   
     mask = 0
-    
-    stop_words = stopwords.words('english')
+    try:
+        stop_words = stopwords.words('english')
+    except LookupError:
+        nltk.download('stopwords')
     #print("STOP WORDS")
     #print(stop_words)
     porter = stemmer()
@@ -30,7 +35,10 @@ def tokenize_LF(toTokenize, dictionary, vocab_path = 'words_alpha.txt'):
     #print("*" *40)
     #print("after removing punctuation")
     #print(filtered_words)
-    filtered_words = tokenizer(filtered_words, "english")   # tokenize
+    try:
+        filtered_words = tokenizer(filtered_words, "english")   # tokenize
+    except LookupError:
+        nltk.download('punkt')
     #print("*" *40)
     #print("after tokenizer")
     #print(filtered_words)
@@ -167,8 +175,8 @@ def tk_to_phrase(tokanized_phrase):
     return phrase
 
 
-dic = {"aaa": [[1,2,3],[1,1,1,1,1]], "bb":[[12,0,0],[222,5,7]], }
-print(dic)
+# dic = {"aaa": [[1,2,3],[1,1,1,1,1]], "bb":[[12,0,0],[222,5,7]], }
+# print(dic)
 # add attention mask 1 where is the original phrase 0 where is padding
 """
 vocab = load_vocab_file()

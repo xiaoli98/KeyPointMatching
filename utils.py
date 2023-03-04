@@ -1,6 +1,6 @@
 from re import X
 from sklearn.feature_extraction.text import TfidfVectorizer
-from track_1_kp_matching import *
+from src.track_1_kp_matching import *
 
 def def_corpus(key_points, arguments, topic):
     

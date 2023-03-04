@@ -1,4 +1,4 @@
-import BertLayer
+import src.BertLayer as BertLayer
 
 import numpy as np
 import tensorflow as tf
@@ -9,7 +9,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from tensorflow import keras
 from transformers import TFBertModel as bert
 
-class DistanceLayer(keras.layers.layer):
+class DistanceLayer(keras.layers.Layer):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         

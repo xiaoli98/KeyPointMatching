@@ -5,8 +5,8 @@ import os
 import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
-from tokenizerLF import *
-from tokenizerLF import tokenize_LF
+from tokenizer.tokenizerLF import *
+from tokenizer.tokenizerLF import tokenize_LF
 
 
 class Argument:
@@ -207,6 +207,35 @@ class Data():
 
         return arguments_df, key_points_df, labels_file_df
     
+    def build_corpus(self, path="kpm_data", subset="train", outFile = "./my_corpus"):
+        """build the KPM corpus
+
+        Args:
+            path (str): path of the file to be constructed the corpus
+            subset (str): subset of the file (train or dev)
+            outFile(str): output where to store thhe corpus
+    
+        """
+        print("building corpus...", end="")
+        arguments_df, key_points_df, _ = self.readCSV(path, subset)#load_kpm_data(path, subset)
+        with open(outFile, "w") as file:
+            arg_cols = {}
+            for i, col in enumerate(arguments_df.columns):
+                arg_cols[col] = i
+            for row in arguments_df.to_numpy().tolist():
+                file.write(row[arg_cols["argument"]] + ", " + row[arg_cols["topic"]]) 
+            
+            keyPoints_cols = {}
+            for i, col in enumerate(key_points_df.columns):
+                keyPoints_cols[col] = i
+            for row in key_points_df.to_numpy().tolist():
+                file.writelines(row[keyPoints_cols['key_point']] + ", " + row[keyPoints_cols['topic']])
+        
+        if os.path.exists(outFile):
+            print("done!")
+            print(f"saved in: {os.path.abspath(outFile)}")
+        else:
+            print("error")
     
     """read csv data from path and the file format should be ./path/filename_{subset}.csv
     filename should be in [arguments, key_points, labels]
