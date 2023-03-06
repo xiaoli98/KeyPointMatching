@@ -83,8 +83,8 @@ class KPMTokernizer():
             self.tokenizer.save(save_path)
         print("done!")
         
-    def encode(self, text):
-        return self.tokenizer.encode(text)
+    def encode(self, text, text2=None):
+        return self.tokenizer.encode(text, text2)
 
     def decode(self, ids):
         return self.tokenizer.decode(ids)

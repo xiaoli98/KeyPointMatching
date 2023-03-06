@@ -5,24 +5,25 @@ from src.dataPreprocess import *
 from transformers import TFBertForSequenceClassification as bert
 from src.Siamese import SiameseBert
 
-data = Data()
-data.get_data_from(path="kpm_data", subset="train")
+# data = Data()
+# data.get_data_from(path="kpm_data", subset="train")
 
-model = bert.from_pretrained("ydshieh/bert-base-uncased-yelp-polarity")
-lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-    initial_learning_rate=5e-5,
-    decay_steps=10000,
-    decay_rate=0.9)
-optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-model.compile(optimizer=optimizer, loss=loss)
+# model = bert.from_pretrained("ydshieh/bert-base-uncased-yelp-polarity")
+# lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+#     initial_learning_rate=5e-5,
+#     decay_steps=10000,
+#     decay_rate=0.9)
+# optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+# loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+# model.compile(optimizer=optimizer, loss=loss)
 
-epochs = 1
-batch = 16
+# epochs = 1
+# batch = 16
 
-print("start training")
+# print("start training")
 
-model.fit(data.shuffle(1000).batch(batch), epochs=epochs, batch_size=batch, verbose=2)
+# model.fit(data.shuffle(1000).batch(batch), epochs=epochs, batch_size=batch, verbose=2)
+
 # logits = []
 # for e in range(epochs):#for each epoch
 #     print("="*20 + "EPOCH: " + str(e) + "="*20)
@@ -61,9 +62,9 @@ class Siamese_Model(tf.keras.Model):
         with tf.GradientTape() as tape:
             loss = self._compute_loss(data)
 
-        gradients = tape.gradient(loss, self.siamese_network.trainable_weights)
+        gradients = tape.gradient(loss, self.siameseNet.trainable_weights)
         self.optimizer.apply_gradients(
-            zip(gradients, self.siamese_network.trainable_weights)
+            zip(gradients, self.siameseNet.trainable_weights)
         )
 
         self.loss_tracker.update_state(loss)
@@ -75,7 +76,7 @@ class Siamese_Model(tf.keras.Model):
         return {"loss": self.loss_tracker.result()}
     
     def _compute_loss(self, data):
-        ap_distance, an_distance = self.siamese_network(data)
+        ap_distance, an_distance = self.siameseNet(data)
         loss = ap_distance - an_distance
         loss = tf.maximum(loss + self.margin, 0.0)
         return loss

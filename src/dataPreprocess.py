@@ -13,6 +13,8 @@ class Argument:
 
     def __init__(self) -> None:
         self.__argId = None
+        self.__group = None
+        self.__gindex = None
         self.__argument = None
         self.__topic = None
         self.__stance = None
@@ -20,6 +22,14 @@ class Argument:
     @property
     def argId(self):
         return self.__argId
+    
+    @property
+    def group(self):
+        return self.__group
+    
+    @property
+    def gindex(self):
+        return self.__gindex
     
     @property
     def argument(self):
@@ -36,6 +46,14 @@ class Argument:
     @argId.setter
     def argId(self, argId):
         self.__argId = argId
+    
+    @group.setter
+    def group(self, group):
+        self.__group = group
+        
+    @gindex.setter
+    def gindex(self, gindex):
+        self.__gindex = gindex
         
     @argument.setter
     def argument(self, argument):
@@ -54,6 +72,8 @@ class KeyPoint:
     
     def __init(self) -> None:
         self.__keyPointId = None 
+        self.__group = None
+        self.__gindex = None
         self.__key_point = None 
         self.__topic = None 
         self.__stance = None 
@@ -61,6 +81,14 @@ class KeyPoint:
     @property
     def keyPointId(self):
         return self.__keyPointId
+    
+    @property
+    def group(self):
+        return self.__group
+    
+    @property
+    def gindex(self):
+        return self.__gindex
     
     @property
     def key_point(self):
@@ -77,6 +105,14 @@ class KeyPoint:
     @keyPointId.setter
     def keyPointId(self, keyPointId):
         self.__keyPointId = keyPointId
+        
+    @group.setter
+    def group(self, group):
+        self.__group = group
+    
+    @gindex.setter
+    def gindex(self, gindex):
+        self.__gindex = gindex
         
     @key_point.setter
     def key_point(self, key_point):
@@ -95,6 +131,8 @@ class Label():
 
     def __init__(self):
         self.__argId = None
+        # self.__group = None
+        # self.__gindex = None
         self.__keyPointId = None
         self.__label = None
         
@@ -102,6 +140,13 @@ class Label():
     def keyPointId(self):      
         return self.__keyPointId
         
+    # @property
+    # def group(self):
+    #     return self.__group
+    
+    # @property
+    # def gindex(self):
+    #     return self.__gindex
     
     @property
     def argId(self):
@@ -115,6 +160,13 @@ class Label():
     def keyPointId(self, keyPointId):
         self.__keyPointId = keyPointId
         
+    # @group.setter
+    # def group(self, group):
+    #     self.__group = group
+    
+    # @gindex.setter
+    # def gindex(self, gindex):
+    #     self.__gindex = gindex
         
     @argId.setter
     def argId(self, argId):
@@ -194,9 +246,9 @@ class Data():
 
     #endregion 
     
+    def readCSV(self, path, subset):
         """read arguments, keypoints and label files
         """
-    def readCSV(self, path, subset):
         arguments_file = os.path.join(path, f"arguments_{subset}.csv")
         key_points_file = os.path.join(path, f"key_points_{subset}.csv")
         labels_file = os.path.join(path, f"labels_{subset}.csv")
@@ -237,47 +289,65 @@ class Data():
         else:
             print("error")
     
-    """read csv data from path and the file format should be ./path/filename_{subset}.csv
-    filename should be in [arguments, key_points, labels]
-    subset should be in [train, dev, test]
-    """
+    def process_df(self, df, class_type):
+        """create a map with Id as key if the class is 'argument' or 'keypoint', 
+        create a list if class is 'label'
+
+        Args:
+            df (Dataframe): dataframe to be mapify
+            class_type (str): can be only: a (argument), k (key point) or l (label)
+
+        Returns:
+            dictionary : the dictionary containing the pairs <ID, class_type>
+            or
+            list : a list of label
+        """
+        container = {}
+        
+        if class_type == 'a':
+            for row in df.to_numpy().tolist():
+                arg = Argument()
+                arg.argId = row[0] #arg_id
+                _, arg.group, arg.gindex = arg.argId.split('_')
+                arg.argument = row[1] #arguments
+                arg.topic = row[2] #topic
+                arg.stance = row[3] #stance
+                container[arg.argId] = arg
+        elif class_type == 'k':
+            for row in df.to_numpy().tolist():
+                kp = KeyPoint()
+                kp.keyPointId = row[0] #key_point_id
+                _, kp.group, kp.gindex = kp.keyPointId.split("_")
+                kp.key_point = row[1] #key_point
+                kp.topic = row[2] #topic
+                kp.stance = row[3] #stance
+                container[kp.keyPointId] = kp
+        elif class_type == 'l':
+            container = []
+            for row in df.to_numpy().tolist():
+                l = Label()
+                l.argId = row[0] #arg_id
+                l.keyPointId = row[1] #key_point_id
+                l.label = row[2] #label
+                container.append(l)
+        else:
+            raise ValueError("argument class_type can be only 'a' (argument), 'k' (key point) or 'l' (label) ")
+        
+        return container
+    
+    def make_triple(self):
+        pass
+    
     def get_data_from(self, path="kpm_data", subset="train"):
+        """read csv data from path and the file format should be ./path/filename_{subset}.csv
+        filename should be in [arguments, key_points, labels]
+        subset should be in [train, dev, test]
+        """
         arguments_df, key_points_df, labels_file_df = self.readCSV(path, subset)#load_kpm_data(path, subset)
 
-        label_cols = {}
-        for i, col in enumerate(labels_file_df.columns):
-            label_cols[col] = i
-        labels = []
-        for row in labels_file_df.to_numpy().tolist():
-            l = Label()
-            l.keyPointId = row[label_cols["key_point_id"]]
-            l.argId = row[label_cols["arg_id"]]
-            l.label = row[label_cols["label"]]
-            labels.append(l)
-
-        arg_cols = {}
-        for i, col in enumerate(arguments_df.columns):
-            arg_cols[col] = i
-        arguments = {}
-        for row in arguments_df.to_numpy().tolist():
-            arg = Argument()
-            arg.argId = row[arg_cols["arg_id"]]
-            arg.argument = row[arg_cols["argument"]]
-            arg.topic = row[arg_cols["topic"]]
-            arg.stance = row[arg_cols["stance"]]
-            arguments[arg.argId] = arg
-
-        keyPoints_cols = {}
-        for i, col in enumerate(key_points_df.columns):
-            keyPoints_cols[col] = i
-        keyPoints = {}
-        for row in key_points_df.to_numpy().tolist():
-           kp = KeyPoint()
-           kp.keyPointId = row[keyPoints_cols['key_point_id']]
-           kp.key_point = row[keyPoints_cols['key_point']]
-           kp.topic = row[keyPoints_cols['topic']]
-           kp.stance = row[keyPoints_cols['stance']]
-           keyPoints[kp.keyPointId] = kp
+        labels = self.process_df(labels_file_df, 'l')
+        arguments = self.process_df(arguments_df, 'a')
+        keyPoints = self.process_df(key_points_df, 'k')
 
         #tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
         
