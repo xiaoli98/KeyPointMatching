@@ -8,6 +8,7 @@ from tokenizers.processors import TemplateProcessing
 from tokenizers.trainers import WordPieceTrainer
 from tokenizers import decoders
 
+from customPreTokenizer import CustomPreTokenizer
 
 class KPMTokernizer():
     def __init__(self, pretrained = None, *args, **kwargs):
@@ -65,8 +66,9 @@ class KPMTokernizer():
         self.tokenizer = tokenizer
         self.tokenizer.normalizer = normalizers.Sequence(normalizers_list)
         
-        pre_tokenizer_list.append(pre_tokenizers.PreTokenizer.custom(CustomPreTokenizer))
-        self.tokenizer.pre_tokenizer = pre_tokenizers.Sequence(pre_tokenizer_list)
+        cstPretoken = CustomPreTokenizer()
+        pre_tokenizer_list.append(pre_tokenizers.PreTokenizer.custom(cstPretoken))
+        self.tokenizer.pre_tokenizer = pre_tokenizers.PreTokenizer.custom(cstPretoken) #pre_tokenizers.Sequence(pre_tokenizer_list)
         
         self.tokenizer.post_processor = post_processor
         self.tokenizer.decoder = decoder
@@ -93,69 +95,5 @@ class KPMTokernizer():
         return self.tokenizer.decode(ids)
 
 
-import nltk
-from nltk import word_tokenize as tokenizer
-from nltk.corpus import stopwords
-from nltk.stem.porter import PorterStemmer as stemmer
-from typing import List
-#https://github.com/huggingface/tokenizers/blob/b24a2fc1781d5da4e6ebcd3ecb5b91edffc0a05f/bindings/python/examples/custom_components.py
 
-class CustomPreTokenizer:
-    
-    """
-    def __init__(self, *args, **kwargs):
-        stop_words = None
-        stem = None
-        lemma = None
-        
-        for kw, value in kwargs.items():
-            if kw == "stopwords" and value == True:
-                try:
-                    stop_words = stopwords.words('english')
-                except LookupError:
-                    nltk.download('stopwords')
-            
-            if kw == "stemmer" and value == True:
-                stem = stemmer()
-                
-            if kw == "stemmer" and value == True:
-                lemma = WordNetLemmatizer()
-    """ 
-     
-    def pre_tokenize(self, text: str) -> List[str]:   
-        words = perform_extra_steps(self, text)     
-        return words
-    
-            
-                
-    def perform_extra_steps(self, text: str) -> List[str]:
-        
-        words = text.split()
-        
-        #if stop_words != None:
-        words = remove_stopwords(self, words)
-        
-        #if stem != None:
-        words = stemming(self, words)
-            
-        #if lemma != None:
-        words = lemmatize(self, words)
-             
-        return words      
-    
-    def remove_stopwords(self, words):
-
-        words = [word for word in words if word.lower() not in self.stopwords]
-        # Return the list of words
-        return words    
-    
-    def stemming(self, words):
-        
-        words = [self.stemmer.stem(word) for word in words]      
-        return words
-    
-    def lemmatize(self, words):
-        
-        words = [self.lemmatizer.lemmatize(word) for word in words]
-        return Words
     
