@@ -28,10 +28,7 @@ class CustomPreTokenizer:
         words = [self.lemmatizer.lemmatize(word) for word in words]
      
         return words
-                    
-        
-    
-    
+                       
     def pre_tokenize(self, pretok: PreTokenizedString):#text: List[str]) -> str:   
         return pretok.split(self.custom_actions)
         
