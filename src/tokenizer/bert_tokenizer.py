@@ -8,7 +8,7 @@ from tokenizers.processors import TemplateProcessing
 from tokenizers.trainers import WordPieceTrainer
 from tokenizers import decoders
 
-from customPreTokenizer import CustomPreTokenizer
+#from customPreTokenizer import CustomPreTokenizer
 
 class KPMTokernizer():
     def __init__(self, pretrained = None, *args, **kwargs):
@@ -66,9 +66,9 @@ class KPMTokernizer():
         self.tokenizer = tokenizer
         self.tokenizer.normalizer = normalizers.Sequence(normalizers_list)
         
-        cstPretoken = CustomPreTokenizer()
-        pre_tokenizer_list.append(pre_tokenizers.PreTokenizer.custom(cstPretoken))
-        self.tokenizer.pre_tokenizer = pre_tokenizers.PreTokenizer.custom(cstPretoken) #pre_tokenizers.Sequence(pre_tokenizer_list)
+        #cstPretoken = CustomPreTokenizer()
+        #pre_tokenizer_list.append(pre_tokenizers.PreTokenizer.custom(cstPretoken))
+        self.tokenizer.pre_tokenizer = pre_tokenizers.Sequence(pre_tokenizer_list)#pre_tokenizers.PreTokenizer.custom(cstPretoken) #pre_tokenizers.Sequence(pre_tokenizer_list)
         
         self.tokenizer.post_processor = post_processor
         self.tokenizer.decoder = decoder

@@ -8,6 +8,9 @@ from tqdm import tqdm
 from tokenizer.tokenizerLF import *
 from tokenizer.tokenizerLF import tokenize_LF
 
+from tokenizer.bert_tokenizer import KPMTokernizer
+
+import random
 
 class Argument:
 
@@ -18,6 +21,7 @@ class Argument:
         self.__argument = None
         self.__topic = None
         self.__stance = None
+        self.__tokenized = None
 
     @property
     def argId(self):
@@ -43,6 +47,11 @@ class Argument:
     def stance(self):
         return self.__stance
     
+    @property
+    def tokenized(self):
+        return self.__tokenized
+    
+
     @argId.setter
     def argId(self, argId):
         self.__argId = argId
@@ -66,7 +75,15 @@ class Argument:
     @stance.setter
     def stance(self, stance):
         self.__stance = stance
-        
+
+    @tokenized.setter
+    def tokenized(self, tokenized):
+        self.__tokenized = tokenized  
+
+
+    def printAll(self):
+        print("argId:",self.__argId, " group:", self.__group," gindex:", self.__gindex, " argument:",self.__argument, " topic:",self.__topic," stance:",self.__stance," tokenized:",self.__tokenized)
+
 
 class KeyPoint:
     
@@ -77,7 +94,8 @@ class KeyPoint:
         self.__key_point = None 
         self.__topic = None 
         self.__stance = None 
-    
+        self.__tokenized = None
+
     @property
     def keyPointId(self):
         return self.__keyPointId
@@ -102,6 +120,11 @@ class KeyPoint:
     def stance(self):
         return self.__stance
     
+    @property
+    def tokenized(self):
+        return self.__tokenized
+    
+
     @keyPointId.setter
     def keyPointId(self, keyPointId):
         self.__keyPointId = keyPointId
@@ -126,6 +149,12 @@ class KeyPoint:
     def stance(self, stance):
         self.__stance = stance
         
+    @tokenized.setter
+    def tokenized(self, tokenized):
+        self.__tokenized = tokenized
+
+    def printAll(self):
+        print("key_point_id:",self.__keyPointId," group:",self.__group," gindex:",self.__gindex," key_point:",self.__key_point," topic:",self.__topic," stance:",self.__stance, " tokenized:",self.__tokenized)
 
 class Label():
 
@@ -176,6 +205,8 @@ class Label():
     def label(self, label):
         self.__label = label
     
+    def printAll(self):
+        print("argID:",self.__argId, " keyPointId:", self.__keyPointId, " label:",self.__label, " ")
     
 class Data():
     def __init__(self) -> None:
@@ -414,3 +445,184 @@ class Data():
             self.test_data = tokenized_data
             self.test_label = targets
     
+
+
+
+    def make_seamese_input(self, path="kpm_data", subset="train", n_combinaitons = 3, repetition = True):
+        """
+            get the anchor from label e.g. arg_0_0,kp_0_0,0 
+            than fond a positive example (another label) same topic, same kp when possible 
+            and a negtive example, same topic same kp 
+            For positive and negative we mean that if 
+            the label of the anchor is 1 than positive is 1 and negative is 0    
+            if label is 0 than positive is 0 and negative is 1
+
+            e.g
+                anchor = arg_0_0,kp_0_0,0
+                positive = arg_0_1,kp_0_0,0 where we get the actual values so [arg,kp] 
+                negative = arg_0_9,kp_0_0,1
+                
+            
+            n_combinaitons = 3, implies the number of example to find for each label, if it is set to -1 it will generate all the possible combination;
+                                if the value is grater than the max possible combinations and repetition can be done the number of combinaitons will be set to max(between positive and negative examples) directly 
+                                if the value is grater than the max possible combinations and repetition can't be done the number of combinaitons will be set to min(between positive and negative examples) directly 
+            repetition = True, if true implies that the same value ca be used more than once
+            
+        """
+
+        #Declare the tokenizer using the one we crated
+        corpus = "./src/corpuses/my_corpus"
+        if not os.path.exists(corpus):      
+            self.build_corpus(outFile=corpus)
+        else:
+            print(f"using existing corpus {corpus}")
+
+        tokenizer = KPMTokernizer(pretrained="bert-base-cased")
+        tokenizer.train([corpus], "./my_pretrained_bert_tok.tkn")
+
+        #recover the data from the file 
+        arguments_df, key_points_df, labels_file_df = self.readCSV(path, subset)#load_kpm_data(path, subset)
+
+        labels = self.process_df(labels_file_df, 'l')
+        arguments = self.process_df(arguments_df, 'a')
+        keyPoints = self.process_df(key_points_df, 'k')
+        
+        #devide the data based on the group and adding the tokenized argument for argument and
+        # keypoint,topic for the topic 
+        arg_byGroup = {}
+        kp_byGroup = {}
+
+        for _, arg in tqdm(arguments.items()): 
+            out = tokenizer.encode(arg.argument, " ")      
+            arg.tokenized = out.ids
+            arg.tokenized.pop(-1)
+
+            if arg.group in arg_byGroup:
+                arg_byGroup[str(arg.group)].append(arg)
+            else:
+                arg_byGroup[str(arg.group)] = [arg]
+
+        for _, kp in tqdm(keyPoints.items()):
+            out = tokenizer.encode(kp.key_point+" "+kp.topic, " ")
+            kp.tokenized = out.ids
+            kp.tokenized.pop(-1)
+            if kp.group in kp_byGroup:
+                kp_byGroup[str(kp.group)].append(kp)
+            else:
+                kp_byGroup[str(kp.group)] = [kp]
+
+        #print(labels[0].argId)
+
+        ##dividere le labels based on the group of kp and if they are postitive or negative
+        ## labes_byGroup {"kp_id": 0, "positive":[], "negative":[]}
+        lb_pos_neg_ByGroup = []
+        for label in tqdm(labels):
+            
+            kp_id = label.keyPointId #keyPoints[str(label.keyPointId)].group         
+            result_dict = next((item for item in lb_pos_neg_ByGroup if item['kp_id'] == kp_id), None)
+            
+            if result_dict != None:
+                if label.label == 1:                     
+                    result_dict["negative"].append(label)
+                else:
+                    result_dict["positive"].append(label)
+            else:
+                dic = {}
+                if  label.label == 1:
+                    dic = {"kp_id": kp_id, "positive":[], "negative":[label]}
+                else:
+                    dic = {"kp_id": kp_id, "positive":[label], "negative":[]}
+                
+                lb_pos_neg_ByGroup.append(dic)              
+
+        #print(len(lb_pos_neg_ByGroup))
+        #print(lb_pos_neg_ByGroup[0]["positive"][0].printAll())
+            
+        ##assigna a radom pos and negative based on the lable we are analizing in the top for
+        an_pos_neg = []
+        for label in tqdm(labels):
+
+            kp_id = str(label.keyPointId)          
+            result_dict = next((item for item in lb_pos_neg_ByGroup if item['kp_id'] == kp_id), None)
+            anchor = [arguments[str(label.argId)],keyPoints[kp_id]]
+                      
+            positive_dic = result_dict["positive"]
+            negative_dic = result_dict["negative"]
+            
+            ##print(len(positive_dic))
+            ##print(len(negative_dic))
+            n_com = n_combinaitons
+            
+            if (n_com == -1 or n_com > min(len(positive_dic),len(negative_dic))) and repetition == False:
+                n_com = min(len(positive_dic),len(negative_dic))
+                
+            elif n_com == -1 and repetition == True:
+                n_com = max(len(positive_dic),len(negative_dic))
+            
+            if repetition == False:
+                choose_pos = random.sample(range(0,len(positive_dic)-1),n_com-1)
+                choose_neg = random.sample(range(0,len(negative_dic)-1),n_com-1)
+                
+                fromPositive = None
+                fromNegative = None
+                
+                for i in range(0,n_com-1):
+                    fromPositive = positive_dic[choose_pos[i]] 
+                    fromNegative = negative_dic[choose_neg[i]]
+
+                    positive = []
+                    negative = []  
+                        
+                    if label.label == 1:
+                        positive = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)]]
+                        negative = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)]]
+                    else:
+                        negative = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)]]
+                        positive = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)]]
+                        
+                    #print(positive[0].printAll(), positive[1].printAll())
+                    #print(negative[0].printAll(), negative[1].printAll())
+                    
+                    an_pos_neg.append({"anchor":anchor, "positive":positive, "negative":negative})
+                
+            else:
+                for i in range (0,n_com):                 
+                    fromPositive = positive_dic[random.randint(0,len(positive_dic)-1)]
+                    fromNegative = negative_dic[random.randint(0,len(negative_dic)-1)]
+      
+                    positive = []
+                    negative = []  
+                        
+                    if label.label == 1:
+                        positive = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)]]
+                        negative = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)]]
+                    else:
+                        negative = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)]]
+                        positive = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)]]
+                        
+                    #print(positive[0].printAll(), positive[1].printAll())
+                    #print(negative[0].printAll(), negative[1].printAll())
+                    
+                    an_pos_neg.append({"anchor":anchor, "positive":positive, "negative":negative})
+                    
+        return an_pos_neg
+        
+"""
+d = Data()
+asd = d.make_seamese_input(n_combinaitons=-1, repetition = False)
+#print(asd[:5])
+print(len(asd))
+
+for i in range(0,5):
+    
+    print(asd[i]["anchor"][0].printAll())
+    print(asd[i]["anchor"][1].printAll())
+    print("+++++")
+    print(asd[i]["positive"][0].printAll())
+    print(asd[i]["positive"][1].printAll())
+    print("+++++")
+    print(asd[i]["negative"][0].printAll())
+    print(asd[i]["negative"][1].printAll())
+    print("---")
+"""
+

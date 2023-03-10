@@ -16,7 +16,15 @@ class CustomPreTokenizer:
     def __init__(self):
         self.stemmer = PorterStemmer()
         self.lemmatizer = WordNetLemmatizer()
-        self.stopwords = set(stopwords.words('english'))      
+
+        try:
+             stop_words = stopwords.words('english')
+        except LookupError:
+            nltk.download('stopwords')
+        
+        nltk.download('wordnet')
+        nltk.download('punkt')
+        self.stopwords = stop_words   
         
     
     def custom_actions(self, i: int, normalized_string: NormalizedString) -> List[NormalizedString]:
