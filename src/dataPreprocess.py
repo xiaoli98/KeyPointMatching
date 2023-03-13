@@ -21,7 +21,6 @@ class Argument:
         self.__argument = None
         self.__topic = None
         self.__stance = None
-        self.__tokenized = None
 
     @property
     def argId(self):
@@ -46,10 +45,6 @@ class Argument:
     @property
     def stance(self):
         return self.__stance
-    
-    @property
-    def tokenized(self):
-        return self.__tokenized
     
 
     @argId.setter
@@ -76,13 +71,8 @@ class Argument:
     def stance(self, stance):
         self.__stance = stance
 
-    @tokenized.setter
-    def tokenized(self, tokenized):
-        self.__tokenized = tokenized  
-
-
     def printAll(self):
-        print("argId:",self.__argId, " group:", self.__group," gindex:", self.__gindex, " argument:",self.__argument, " topic:",self.__topic," stance:",self.__stance," tokenized:",self.__tokenized)
+        print("argId:",self.__argId, " group:", self.__group," gindex:", self.__gindex, " argument:",self.__argument, " topic:",self.__topic," stance:",self.__stance)
 
 
 class KeyPoint:
@@ -94,7 +84,6 @@ class KeyPoint:
         self.__key_point = None 
         self.__topic = None 
         self.__stance = None 
-        self.__tokenized = None
 
     @property
     def keyPointId(self):
@@ -120,10 +109,6 @@ class KeyPoint:
     def stance(self):
         return self.__stance
     
-    @property
-    def tokenized(self):
-        return self.__tokenized
-    
 
     @keyPointId.setter
     def keyPointId(self, keyPointId):
@@ -148,13 +133,9 @@ class KeyPoint:
     @stance.setter
     def stance(self, stance):
         self.__stance = stance
-        
-    @tokenized.setter
-    def tokenized(self, tokenized):
-        self.__tokenized = tokenized
 
     def printAll(self):
-        print("key_point_id:",self.__keyPointId," group:",self.__group," gindex:",self.__gindex," key_point:",self.__key_point," topic:",self.__topic," stance:",self.__stance, " tokenized:",self.__tokenized)
+        print("key_point_id:",self.__keyPointId," group:",self.__group," gindex:",self.__gindex," key_point:",self.__key_point," topic:",self.__topic," stance:",self.__stance)
 
 class Label():
 
@@ -164,6 +145,7 @@ class Label():
         # self.__gindex = None
         self.__keyPointId = None
         self.__label = None
+        self.__tokenized = None
         
     @property
     def keyPointId(self):      
@@ -196,6 +178,10 @@ class Label():
     # @gindex.setter
     # def gindex(self, gindex):
     #     self.__gindex = gindex
+    
+    @property
+    def tokenized(self):
+        return self.__tokenized
         
     @argId.setter
     def argId(self, argId):
@@ -204,9 +190,13 @@ class Label():
     @label.setter
     def label(self, label):
         self.__label = label
+        
+    @tokenized.setter
+    def tokenized(self, tokenized):
+        self.__tokenized = tokenized
     
     def printAll(self):
-        print("argID:",self.__argId, " keyPointId:", self.__keyPointId, " label:",self.__label, " ")
+        print("argID:",self.__argId, " keyPointId:", self.__keyPointId, " label:",self.__label, " ",self.__tokenized)
     
 class Data():
     def __init__(self) -> None:
@@ -448,7 +438,7 @@ class Data():
 
 
 
-    def make_seamese_input(self, path="kpm_data", subset="train", n_combinaitons = 3, repetition = True):
+    def make_siamese_input(self, path="kpm_data", subset="train", n_combinaitons = 3, repetition = True, pretrained_tok = None):
         """
             get the anchor from label e.g. arg_0_0,kp_0_0,0 
             than fond a positive example (another label) same topic, same kp when possible 
@@ -476,12 +466,17 @@ class Data():
             self.build_corpus(outFile=corpus)
         else:
             print(f"using existing corpus {corpus}")
-
+        
+        
         tokenizer = KPMTokernizer(pretrained="bert-base-cased")
-        tokenizer.train([corpus], "./my_pretrained_bert_tok.tkn")
+        if pretrained_tok is None:          
+            tokenizer.train([corpus], "./my_pretrained_bert_tok.tkn")
+        else:
+            tokenizer = KPMTokernizer(pretrained=pretrained_tok)
+
 
         #recover the data from the file 
-        arguments_df, key_points_df, labels_file_df = self.readCSV(path, subset)#load_kpm_data(path, subset)
+        arguments_df, key_points_df, labels_file_df = self.readCSV(path, subset)
 
         labels = self.process_df(labels_file_df, 'l')
         arguments = self.process_df(arguments_df, 'a')
@@ -493,19 +488,12 @@ class Data():
         kp_byGroup = {}
 
         for _, arg in tqdm(arguments.items()): 
-            out = tokenizer.encode(arg.argument, " ")      
-            arg.tokenized = out.ids
-            arg.tokenized.pop(-1)
-
             if arg.group in arg_byGroup:
                 arg_byGroup[str(arg.group)].append(arg)
             else:
                 arg_byGroup[str(arg.group)] = [arg]
 
         for _, kp in tqdm(keyPoints.items()):
-            out = tokenizer.encode(kp.key_point+" "+kp.topic, " ")
-            kp.tokenized = out.ids
-            kp.tokenized.pop(-1)
             if kp.group in kp_byGroup:
                 kp_byGroup[str(kp.group)].append(kp)
             else:
@@ -518,7 +506,8 @@ class Data():
         lb_pos_neg_ByGroup = []
         for label in tqdm(labels):
             
-            kp_id = label.keyPointId #keyPoints[str(label.keyPointId)].group         
+            kp_id = label.keyPointId #keyPoints[str(label.keyPointId)].group    
+            label.tokenized = tokenizer.encode(keyPoints[str(label.keyPointId)].key_point+" "+keyPoints[str(label.keyPointId)].topic, arguments[str(label.argId)].argument+" "+arguments[str(label.argId)].topic)
             result_dict = next((item for item in lb_pos_neg_ByGroup if item['kp_id'] == kp_id), None)
             
             if result_dict != None:
@@ -544,7 +533,7 @@ class Data():
 
             kp_id = str(label.keyPointId)          
             result_dict = next((item for item in lb_pos_neg_ByGroup if item['kp_id'] == kp_id), None)
-            anchor = [arguments[str(label.argId)],keyPoints[kp_id]]
+            anchor = [arguments[str(label.argId)], keyPoints[kp_id], label.tokenized, label.label]
                       
             positive_dic = result_dict["positive"]
             negative_dic = result_dict["negative"]
@@ -574,11 +563,11 @@ class Data():
                     negative = []  
                         
                     if label.label == 1:
-                        positive = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)]]
-                        negative = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)]]
+                        negative = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)], fromPositive.tokenized, fromPositive.label]
+                        positive = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)], fromNegative.tokenized, fromNegative.label]
                     else:
-                        negative = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)]]
-                        positive = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)]]
+                        positive = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)], fromPositive.tokenized, fromPositive.label]
+                        negative = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)], fromNegative.tokenized, fromNegative.label]
                         
                     #print(positive[0].printAll(), positive[1].printAll())
                     #print(negative[0].printAll(), negative[1].printAll())
@@ -594,11 +583,11 @@ class Data():
                     negative = []  
                         
                     if label.label == 1:
-                        positive = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)]]
-                        negative = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)]]
+                        negative = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)], fromPositive.tokenized, fromPositive.label]
+                        positive = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)], fromNegative.tokenized, fromNegative.label]
                     else:
-                        negative = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)]]
-                        positive = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)]]
+                        positive = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)], fromPositive.tokenized, fromPositive.label]
+                        negative = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)], fromNegative.tokenized, fromNegative.label]
                         
                     #print(positive[0].printAll(), positive[1].printAll())
                     #print(negative[0].printAll(), negative[1].printAll())
@@ -606,23 +595,46 @@ class Data():
                     an_pos_neg.append({"anchor":anchor, "positive":positive, "negative":negative})
                     
         return an_pos_neg
+
+    def test_make_siamese_input(self, path="kpm_data", subset="train", n_combinaitons = 3, repetition = True, pretrained_tok = None):
+        d = Data()
+        asd = d.make_siamese_input(path = path, subset = subset, n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
+        #print(asd[:5])
+        print(len(asd))
         
-"""
-d = Data()
-asd = d.make_seamese_input(n_combinaitons=-1, repetition = False)
-#print(asd[:5])
-print(len(asd))
+        good_input = 0
+        wrong_input = 0
+            
+        for i in tqdm(range(0,len(asd))):
+            
+            if (asd[i]["positive"][3] == asd[i]["anchor"][3] and asd[i]["negative"][3] != asd[i]["anchor"][3] ):
+                good_input+=1
+            else:
+                print(asd[i]["anchor"][0].printAll())
+                print(asd[i]["anchor"][1].printAll())
+                print(asd[i]["anchor"][2])
+                print(asd[i]["anchor"][3])
+                print("+++++")
+                print(asd[i]["positive"][0].printAll())
+                print(asd[i]["positive"][1].printAll())
+                print(asd[i]["positive"][2])
+                print(asd[i]["positive"][3])
+                print("+++++")
+                print(asd[i]["negative"][0].printAll())
+                print(asd[i]["negative"][1].printAll())
+                print(asd[i]["negative"][2])
+                print(asd[i]["negative"][3])
+                print("---")
+                
+                wrong_input+=1
+        
+        print("the correct inputs are: ", good_input, " out of ", len(asd))
+        print("the wrong inputs are: ", wrong_input, " out of ", len(asd))
+        error_rate = (wrong_input/len(asd))*100
+        print("error rate is: ",error_rate,"%")
+        
+        correct_rate = (good_input/len(asd))*100
+        print("correct rate is: ",correct_rate,"%")
 
-for i in range(0,5):
-    
-    print(asd[i]["anchor"][0].printAll())
-    print(asd[i]["anchor"][1].printAll())
-    print("+++++")
-    print(asd[i]["positive"][0].printAll())
-    print(asd[i]["positive"][1].printAll())
-    print("+++++")
-    print(asd[i]["negative"][0].printAll())
-    print(asd[i]["negative"][1].printAll())
-    print("---")
-"""
-
+#d = Data()
+#d.test_make_siamese_input(n_combinaitons = -1, repetition = True)
