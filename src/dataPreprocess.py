@@ -507,7 +507,7 @@ class Data():
         for label in tqdm(labels):
             
             kp_id = label.keyPointId #keyPoints[str(label.keyPointId)].group    
-            label.tokenized = tokenizer.encode(keyPoints[str(label.keyPointId)].key_point+" "+keyPoints[str(label.keyPointId)].topic, arguments[str(label.argId)].argument+" "+arguments[str(label.argId)].topic)
+            label.tokenized = tokenizer.encode(arguments[str(label.argId)].argument+" "+arguments[str(label.argId)].topic, keyPoints[str(label.keyPointId)].key_point+" "+keyPoints[str(label.keyPointId)].topic)
             result_dict = next((item for item in lb_pos_neg_ByGroup if item['kp_id'] == kp_id), None)
             
             if result_dict != None:
@@ -572,7 +572,7 @@ class Data():
                     #print(positive[0].printAll(), positive[1].printAll())
                     #print(negative[0].printAll(), negative[1].printAll())
                     
-                    an_pos_neg.append({"anchor":anchor, "positive":positive, "negative":negative})
+                    an_pos_neg.append([anchor, positive, negative])
                 
             else:
                 for i in range (0,n_com):                 
@@ -592,38 +592,37 @@ class Data():
                     #print(positive[0].printAll(), positive[1].printAll())
                     #print(negative[0].printAll(), negative[1].printAll())
                     
-                    an_pos_neg.append({"anchor":anchor, "positive":positive, "negative":negative})
-                    
+                    an_pos_neg.append([anchor, positive, negative])                    
         return an_pos_neg
 
     def test_make_siamese_input(self, path="kpm_data", subset="train", n_combinaitons = 3, repetition = True, pretrained_tok = None):
         d = Data()
         asd = d.make_siamese_input(path = path, subset = subset, n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
         #print(asd[:5])
-        print(len(asd))
+        print(type(asd))
         
         good_input = 0
         wrong_input = 0
             
         for i in tqdm(range(0,len(asd))):
             
-            if (asd[i]["positive"][3] == asd[i]["anchor"][3] and asd[i]["negative"][3] != asd[i]["anchor"][3] ):
+            if (asd[i][1][3] == asd[i][0][3] and asd[i][2][3] != asd[i][0][3] ):
                 good_input+=1
             else:
-                print(asd[i]["anchor"][0].printAll())
-                print(asd[i]["anchor"][1].printAll())
-                print(asd[i]["anchor"][2])
-                print(asd[i]["anchor"][3])
+                print(asd[i][0][0].printAll())
+                print(asd[i][0][1].printAll())
+                print(asd[i][0][2])
+                print(asd[i][0][3])
                 print("+++++")
-                print(asd[i]["positive"][0].printAll())
-                print(asd[i]["positive"][1].printAll())
-                print(asd[i]["positive"][2])
-                print(asd[i]["positive"][3])
+                print(asd[i][1][0].printAll())
+                print(asd[i][1][1].printAll())
+                print(asd[i][1][2])
+                print(asd[i][1][3])
                 print("+++++")
-                print(asd[i]["negative"][0].printAll())
-                print(asd[i]["negative"][1].printAll())
-                print(asd[i]["negative"][2])
-                print(asd[i]["negative"][3])
+                print(asd[i][2][0].printAll())
+                print(asd[i][2][1].printAll())
+                print(asd[i][2][2])
+                print(asd[i][2][3])
                 print("---")
                 
                 wrong_input+=1
@@ -636,5 +635,38 @@ class Data():
         correct_rate = (good_input/len(asd))*100
         print("correct rate is: ",correct_rate,"%")
 
-#d = Data()
-#d.test_make_siamese_input(n_combinaitons = -1, repetition = True)
+        return asd
+    
+    def get_tf_dataset(self, path="kpm_data", subset="train", n_combinaitons = 3, repetition = True, pretrained_tok = None, test_input = False):
+        
+        my_list = None
+
+        if test_input:
+            my_list = self.test_make_siamese_input(path = path, subset = subset, n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
+        else:
+            my_list = self.make_siamese_input(path = path, subset = subset, n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
+        #np.dtype(list)
+        print(my_list[0][0][2])
+        print(type(my_list[0][0][2]))
+        input()
+        dataset = tf.data.Dataset.from_generator( lambda: ((x[0][2][1], x[1][2][1], x[2][2][1]) for x in my_list),
+            output_types=(np.dtype(list) , np.dtype(list), np.dtype(list)))
+        print(len(dataset))
+        return dataset.map(lambda ancor, pos, neg: self.parse_fn(ancor, pos, neg))
+        
+    # Define parsing function to extract features
+    def parse_fn(self, obj1, obj2, obj3):
+        return {'ancor': obj1,
+                'pos': obj2,
+                'neg': obj3}
+
+"""
+d = Data()
+tw_ds = d.get_tf_dataset(n_combinaitons = 1, repetition = True)
+print(type(tw_ds))
+##print(len(tw_ds))
+
+for example in tw_ds:
+    print(example)
+    input()
+"""
