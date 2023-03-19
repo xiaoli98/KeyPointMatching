@@ -691,6 +691,7 @@ class Data():
         #the data in a tf dataset must be all of the same size, to go around this problem tf.ragged.constant has been used
         return tf.data.Dataset.from_tensor_slices(tf.ragged.constant(to_transform))
 
+"""
 d = Data()
 tw_ds = d.get_tf_dataset(n_combinaitons = 1, repetition = True)
 print(type(tw_ds))
@@ -699,3 +700,4 @@ print(type(tw_ds))
 for example in tw_ds:
     print(example)
     input()
+"""
