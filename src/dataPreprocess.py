@@ -4,6 +4,7 @@ from track_1_kp_matching import *
 import os
 import pandas as pd
 import tensorflow as tf
+
 from tqdm import tqdm
 from tokenizer.tokenizerLF import *
 from tokenizer.tokenizerLF import tokenize_LF
@@ -646,13 +647,45 @@ class Data():
         else:
             my_list = self.make_siamese_input(path = path, subset = subset, n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
         #np.dtype(list)
+        """
         print(my_list[0][0][2])
+        print(my_list[0][0][2].ids)
+        print(type(my_list[0][0][2].ids))
+        print()
+        print(my_list[0][0][2].type_ids)
+        print(type(my_list[0][0][2].type_ids))
+        print()
+        print(my_list[0][0][2].tokens)
+        print(type(my_list[0][0][2].tokens))
+        print()
+        print(my_list[0][0][2].offsets)
+        print(type(my_list[0][0][2].offsets))
+        print()
+        print(my_list[0][0][2].attention_mask)
+        print(type(my_list[0][0][2].attention_mask))
+        print()
+        print(my_list[0][0][2].special_tokens_mask)
+        print(type(my_list[0][0][2].special_tokens_mask))
+        print()
+        print(my_list[0][0][2].overflowing)
+        print(type(my_list[0][0][2].overflowing))
+        print()
         print(type(my_list[0][0][2]))
         input()
+        
         dataset = tf.data.Dataset.from_generator( lambda: ((x[0][2][1], x[1][2][1], x[2][2][1]) for x in my_list),
             output_types=(np.dtype(list) , np.dtype(list), np.dtype(list)))
         print(len(dataset))
         return dataset.map(lambda ancor, pos, neg: self.parse_fn(ancor, pos, neg))
+        """
+        to_transform = []
+        for i in tqdm(range (0,len(my_list))):
+            anchor = [my_list[i][0][2].ids, my_list[i][0][2].type_ids, my_list[i][0][2].offsets, my_list[i][0][2].attention_mask, my_list[i][0][2].special_tokens_mask, my_list[i][0][2].overflowing]
+            positive = [my_list[i][1][2].ids, my_list[i][1][2].type_ids, my_list[i][1][2].offsets, my_list[i][1][2].attention_mask, my_list[i][1][2].special_tokens_mask, my_list[i][1][2].overflowing]
+            negative = [my_list[i][2][2].ids, my_list[i][2][2].type_ids, my_list[i][2][2].offsets, my_list[i][2][2].attention_mask, my_list[i][2][2].special_tokens_mask, my_list[i][2][2].overflowing]
+            to_transform.append([anchor, positive, negative]) 
+        
+        return tf.data.Dataset.from_tensor_slices(to_transform)
         
     # Define parsing function to extract features
     def parse_fn(self, obj1, obj2, obj3):
@@ -660,7 +693,6 @@ class Data():
                 'pos': obj2,
                 'neg': obj3}
 
-"""
 d = Data()
 tw_ds = d.get_tf_dataset(n_combinaitons = 1, repetition = True)
 print(type(tw_ds))
@@ -669,4 +701,3 @@ print(type(tw_ds))
 for example in tw_ds:
     print(example)
     input()
-"""
