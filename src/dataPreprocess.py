@@ -647,30 +647,31 @@ class Data():
         else:
             my_list = self.make_siamese_input(path = path, subset = subset, n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
         #np.dtype(list)
+        
         """
         print(my_list[0][0][2])
         print(my_list[0][0][2].ids)
-        print(type(my_list[0][0][2].ids))
+        print(type(my_list[0][0][2].ids[0])) # int
         print()
         print(my_list[0][0][2].type_ids)
-        print(type(my_list[0][0][2].type_ids))
+        print(type(my_list[0][0][2].type_ids[0])) #int
         print()
         print(my_list[0][0][2].tokens)
-        print(type(my_list[0][0][2].tokens))
+        print(type(my_list[0][0][2].tokens[0])) #str
         print()
         print(my_list[0][0][2].offsets)
-        print(type(my_list[0][0][2].offsets))
+        print(type(my_list[0][0][2].offsets[0]))#tuple
         print()
         print(my_list[0][0][2].attention_mask)
-        print(type(my_list[0][0][2].attention_mask))
+        print(type(my_list[0][0][2].attention_mask[0]))#int
         print()
         print(my_list[0][0][2].special_tokens_mask)
-        print(type(my_list[0][0][2].special_tokens_mask))
+        print(type(my_list[0][0][2].special_tokens_mask[0]))#int
         print()
         print(my_list[0][0][2].overflowing)
-        print(type(my_list[0][0][2].overflowing))
+        print(type(my_list[0][0][2].overflowing))#list
         print()
-        print(type(my_list[0][0][2]))
+        print(type(my_list[0][0][2]))#tokenizers.Encoding
         input()
         
         dataset = tf.data.Dataset.from_generator( lambda: ((x[0][2][1], x[1][2][1], x[2][2][1]) for x in my_list),
@@ -678,20 +679,17 @@ class Data():
         print(len(dataset))
         return dataset.map(lambda ancor, pos, neg: self.parse_fn(ancor, pos, neg))
         """
+        
+        # tensorflow datasets accepts only one type of data so if you give int all must be int, due to this reason my_list[0][0][2].tokens and my_list[0][0][2].offsets
+        # are not included in the dataset, if they must be in the dataset a workaround must be found
         to_transform = []
         for i in tqdm(range (0,len(my_list))):
-            anchor = [my_list[i][0][2].ids, my_list[i][0][2].type_ids, my_list[i][0][2].offsets, my_list[i][0][2].attention_mask, my_list[i][0][2].special_tokens_mask, my_list[i][0][2].overflowing]
-            positive = [my_list[i][1][2].ids, my_list[i][1][2].type_ids, my_list[i][1][2].offsets, my_list[i][1][2].attention_mask, my_list[i][1][2].special_tokens_mask, my_list[i][1][2].overflowing]
-            negative = [my_list[i][2][2].ids, my_list[i][2][2].type_ids, my_list[i][2][2].offsets, my_list[i][2][2].attention_mask, my_list[i][2][2].special_tokens_mask, my_list[i][2][2].overflowing]
+            anchor = [my_list[i][0][2].ids, my_list[i][0][2].type_ids, my_list[i][0][2].attention_mask, my_list[i][0][2].special_tokens_mask, my_list[i][0][2].overflowing]
+            positive = [my_list[i][1][2].ids, my_list[i][1][2].type_ids, my_list[i][1][2].attention_mask, my_list[i][1][2].special_tokens_mask, my_list[i][1][2].overflowing]
+            negative = [my_list[i][2][2].ids, my_list[i][2][2].type_ids, my_list[i][2][2].attention_mask, my_list[i][2][2].special_tokens_mask, my_list[i][2][2].overflowing]
             to_transform.append([anchor, positive, negative]) 
         
         return tf.data.Dataset.from_tensor_slices(to_transform)
-        
-    # Define parsing function to extract features
-    def parse_fn(self, obj1, obj2, obj3):
-        return {'ancor': obj1,
-                'pos': obj2,
-                'neg': obj3}
 
 d = Data()
 tw_ds = d.get_tf_dataset(n_combinaitons = 1, repetition = True)
