@@ -684,12 +684,12 @@ class Data():
         # are not included in the dataset, if they must be in the dataset a workaround must be found
         to_transform = []
         for i in tqdm(range (0,len(my_list))):
-            anchor = [my_list[i][0][2].ids, my_list[i][0][2].type_ids, my_list[i][0][2].attention_mask, my_list[i][0][2].special_tokens_mask, my_list[i][0][2].overflowing]
-            positive = [my_list[i][1][2].ids, my_list[i][1][2].type_ids, my_list[i][1][2].attention_mask, my_list[i][1][2].special_tokens_mask, my_list[i][1][2].overflowing]
-            negative = [my_list[i][2][2].ids, my_list[i][2][2].type_ids, my_list[i][2][2].attention_mask, my_list[i][2][2].special_tokens_mask, my_list[i][2][2].overflowing]
+            anchor = [my_list[i][0][2].ids, my_list[i][0][2].type_ids, my_list[i][0][2].attention_mask, my_list[i][0][2].special_tokens_mask]
+            positive = [my_list[i][1][2].ids, my_list[i][1][2].type_ids, my_list[i][1][2].attention_mask, my_list[i][1][2].special_tokens_mask]
+            negative = [my_list[i][2][2].ids, my_list[i][2][2].type_ids, my_list[i][2][2].attention_mask, my_list[i][2][2].special_tokens_mask]
             to_transform.append([anchor, positive, negative]) 
-        
-        return tf.data.Dataset.from_tensor_slices(to_transform)
+        #the data in a tf dataset must be all of the same size, to go around this problem tf.ragged.constant has been used
+        return tf.data.Dataset.from_tensor_slices(tf.ragged.constant(to_transform))
 
 d = Data()
 tw_ds = d.get_tf_dataset(n_combinaitons = 1, repetition = True)
