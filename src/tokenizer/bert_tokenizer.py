@@ -72,6 +72,7 @@ class KPMTokernizer():
         
         self.tokenizer.post_processor = post_processor
         self.tokenizer.decoder = decoder
+        self.tokenizer.enable_padding(length=128)
         
     def train(self, files, save_path=None, trainer=WordPieceTrainer, **kwargs):
         """train the tokenizer with a trainer

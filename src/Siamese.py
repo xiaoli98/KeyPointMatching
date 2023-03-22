@@ -12,18 +12,6 @@ from transformers import TFBertModel as bert
 class DistanceLayer(keras.layers.Layer):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        
-    def TF_idf(self, a:str, b:str)->float:
-        """compute tf idf score
-
-        Args:
-            a (str): first string
-            b (str): second string
-            
-        Returns:
-            float: tf idf score
-        """
-        pass
     
     def jaccard(self, a:str, b:str)->float:
         """compute jaccard similarity
@@ -63,28 +51,26 @@ class DistanceLayer(keras.layers.Layer):
         distance = None
         if metric == "cosine":
             distance = self.cosine_sim
-        elif metric == "tfidf":
-            if vectorizer is None:
-                raise ValueError("to use tf-idf you must specify the vectorizer (e.g. provided by sklearn)")
-            distance = self.TF_idf
         elif metric == "jaccard":
-            metric = self.jaccard
+            distance = self.jaccard
         else:
             raise ValueError("distance metric not found")
         
         ap_distance = distance(anchor, positive)
         an_distance =distance(anchor, negative)
-        return (ap_distance, an_distance)
+        return ap_distance, an_distance
 
 class SiameseBert(keras.layers.Layer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.classifier = tf.keras.Sequential()
-        self.bert = BertLayer(self.classifier)
-        self.bert.add(keras.layers.Dense(64, activation = 'relu'))
-        self.bert.add(keras.layers.Dropout(0.2))
-        self.bert.add(keras.layers.Dense(128, activation = 'relu'))
-        self.bert.add(keras.layers.Dense(1, activation = 'sigmoid'))
+        self.bert = BertLayer(bert_model_name="bert-base-uncased")
+        # creating bert classifier
+        self.classifier = keras.Sequential([
+            keras.layers.Dense(64, activation = 'relu'),
+            keras.layers.Dropout(0.3),
+            keras.layers.Dense(128, activation = 'relu'),
+            keras.layers.Dense(1, activation = 'sigmoid')
+        ])
         
         self.distance = DistanceLayer()
         
@@ -93,15 +79,24 @@ class SiameseBert(keras.layers.Layer):
         for kwarg, value in kwargs.items():
             if kwarg == 'metric':
                 self.metric = value
+            if kwarg == 'decoder':
+                self.decoder = value
+            
         
     def call(self, X, positive, negative):
-        output_x = self.bert(X)
-        output_positive = self.bert(positive)
-        output_negative = self.bert(negative)
+        output_x = self.bert(input_id=X.ids, mask=X.attention_mask, type_ids=X.type_ids)
+        output_positive = self.bert(input_id=positive.ids, mask=positive.attention_mask, type_ids=positive.type_ids)
+        output_negative = self.bert(input_id=negative.ids, mask=negative.attention_mask, type_ids=negative.type_ids)
         
-        distance = self.distance(output_x, output_positive, output_negative, metric = self.metric)
+        # distance = self.distance(X, positive, negative, metric = self.metric)
         
-        return distance
+        pooled_x = keras.layers.GlobalAveragePooling1D()(output_x)
+        pooled_positive = keras.layers.GlobalAveragePooling1D()(output_positive)
+        pooled_negative = keras.layers.GlobalAveragePooling1D()(output_negative)
         
-
+        concat_anchor_pos = tf.keras.layers.Concatenate(axis=1)([pooled_x, pooled_positive])
+        concat_anchor_neg = tf.keras.layers.Concatenate(axis=1)([pooled_x, pooled_negative])
+        # concatenated = tf.keras.layers.Concatenate(axis=1)([pooled_x, pooled_positive, pooled_negative, distance])
+        
+        return self.classifier(concat_anchor_pos), self.classifier(concat_anchor_neg)
         

@@ -10,7 +10,7 @@ class BertLayer(keras.layers.Layer):
 
     """
     
-    def __init__(self, bert_model_name, classifier:keras.Sequential=None) -> None:
+    def __init__(self, bert_model_name="bert-base-uncased") -> None:
         """initialize the bert model with a pretrained one, bert_model_name should be an existining model on hugging face
 
         Args:
@@ -19,24 +19,12 @@ class BertLayer(keras.layers.Layer):
         """
         super().__init__()
         self.model = bert.from_pretrained(bert_model_name)
-        self.classifier = classifier
         
-    def call(self, input_id, mask = None):
+    def call(self, input_id, mask, type_ids):
         """override of tf call
 
         Args:
             input_id (_type_): _description_
             mask (_type_, optional): _description_. Defaults to None.
         """
-        _, pooled_output = self.model(input_ids= input_id, attention_mask=mask,return_dict=False)
-        if(self.classifier is not None):
-            output = self.classifier(pooled_output)
-    
-    def add(self, layer:keras.layers.Layer):
-        """add a layer to the classifier
-
-        Args:
-            layer (keras.layers.Layer): _description_
-        """
-        self.classifier.add(layer)
-        
+        return self.model(input_ids= input_id, attention_mask=mask, token_type_ids=type_ids,return_dict=False)
