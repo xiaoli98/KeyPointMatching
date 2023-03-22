@@ -1,15 +1,15 @@
 from transformers import BertTokenizer
-from track_1_kp_matching import *
+from .track_1_kp_matching import *
 
 import os
 import pandas as pd
 import tensorflow as tf
 
 from tqdm import tqdm
-from tokenizer.tokenizerLF import *
-from tokenizer.tokenizerLF import tokenize_LF
+from .tokenizer.tokenizerLF import *
+from .tokenizer.tokenizerLF import tokenize_LF
 
-from tokenizer.bert_tokenizer import KPMTokernizer
+from .tokenizer.bert_tokenizer import KPMTokernizer
 
 import random
 
@@ -357,9 +357,6 @@ class Data():
         
         return container
     
-    def make_triple(self):
-        pass
-    
     def get_data_from(self, path="kpm_data", subset="train"):
         """read csv data from path and the file format should be ./path/filename_{subset}.csv
         filename should be in [arguments, key_points, labels]
@@ -469,11 +466,11 @@ class Data():
             print(f"using existing corpus {corpus}")
         
         
-        tokenizer = KPMTokernizer(pretrained="bert-base-cased")
+        self.tokenizer = KPMTokernizer(pretrained="bert-base-cased")
         if pretrained_tok is None:          
-            tokenizer.train([corpus], "./my_pretrained_bert_tok.tkn")
+            self.tokenizer.train([corpus], "./my_pretrained_bert_tok.tkn")
         else:
-            tokenizer = KPMTokernizer(pretrained=pretrained_tok)
+            self.tokenizer = KPMTokernizer(pretrained=pretrained_tok)
 
 
         #recover the data from the file 
@@ -508,7 +505,7 @@ class Data():
         for label in tqdm(labels):
             
             kp_id = label.keyPointId #keyPoints[str(label.keyPointId)].group    
-            label.tokenized = tokenizer.encode(arguments[str(label.argId)].argument+" "+arguments[str(label.argId)].topic, keyPoints[str(label.keyPointId)].key_point+" "+keyPoints[str(label.keyPointId)].topic)
+            label.tokenized = self.tokenizer.encode(arguments[str(label.argId)].argument+" "+arguments[str(label.argId)].topic, keyPoints[str(label.keyPointId)].key_point+" "+keyPoints[str(label.keyPointId)].topic)
             result_dict = next((item for item in lb_pos_neg_ByGroup if item['kp_id'] == kp_id), None)
             
             if result_dict != None:
@@ -534,7 +531,7 @@ class Data():
 
             kp_id = str(label.keyPointId)          
             result_dict = next((item for item in lb_pos_neg_ByGroup if item['kp_id'] == kp_id), None)
-            anchor = [arguments[str(label.argId)], keyPoints[kp_id], label.tokenized, label.label]
+            anchor = label.tokenized
                       
             positive_dic = result_dict["positive"]
             negative_dic = result_dict["negative"]
@@ -564,11 +561,11 @@ class Data():
                     negative = []  
                         
                     if label.label == 1:
-                        negative = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)], fromPositive.tokenized, fromPositive.label]
-                        positive = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)], fromNegative.tokenized, fromNegative.label]
+                        negative = fromPositive.tokenized
+                        positive = fromNegative.tokenized
                     else:
-                        positive = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)], fromPositive.tokenized, fromPositive.label]
-                        negative = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)], fromNegative.tokenized, fromNegative.label]
+                        positive = fromPositive.tokenized
+                        negative = fromNegative.tokenized
                         
                     #print(positive[0].printAll(), positive[1].printAll())
                     #print(negative[0].printAll(), negative[1].printAll())
@@ -584,16 +581,16 @@ class Data():
                     negative = []  
                         
                     if label.label == 1:
-                        negative = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)], fromPositive.tokenized, fromPositive.label]
-                        positive = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)], fromNegative.tokenized, fromNegative.label]
+                        negative = fromPositive.tokenized
+                        positive = fromNegative.tokenized
                     else:
-                        positive = [arguments[str(fromPositive.argId)],keyPoints[str(fromPositive.keyPointId)], fromPositive.tokenized, fromPositive.label]
-                        negative = [arguments[str(fromNegative.argId)],keyPoints[str(fromNegative.keyPointId)], fromNegative.tokenized, fromNegative.label]
+                        positive = fromPositive.tokenized
+                        negative = fromNegative.tokenized
                         
                     #print(positive[0].printAll(), positive[1].printAll())
                     #print(negative[0].printAll(), negative[1].printAll())
                     
-                    an_pos_neg.append([anchor, positive, negative])                    
+                    an_pos_neg.append([[anchor, positive, negative], label.label])                    
         return an_pos_neg
 
     def test_make_siamese_input(self, path="kpm_data", subset="train", n_combinaitons = 3, repetition = True, pretrained_tok = None):
@@ -646,58 +643,16 @@ class Data():
             my_list = self.test_make_siamese_input(path = path, subset = subset, n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
         else:
             my_list = self.make_siamese_input(path = path, subset = subset, n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
-        #np.dtype(list)
-        
-        """
-        print(my_list[0][0][2])
-        print(my_list[0][0][2].ids)
-        print(type(my_list[0][0][2].ids[0])) # int
-        print()
-        print(my_list[0][0][2].type_ids)
-        print(type(my_list[0][0][2].type_ids[0])) #int
-        print()
-        print(my_list[0][0][2].tokens)
-        print(type(my_list[0][0][2].tokens[0])) #str
-        print()
-        print(my_list[0][0][2].offsets)
-        print(type(my_list[0][0][2].offsets[0]))#tuple
-        print()
-        print(my_list[0][0][2].attention_mask)
-        print(type(my_list[0][0][2].attention_mask[0]))#int
-        print()
-        print(my_list[0][0][2].special_tokens_mask)
-        print(type(my_list[0][0][2].special_tokens_mask[0]))#int
-        print()
-        print(my_list[0][0][2].overflowing)
-        print(type(my_list[0][0][2].overflowing))#list
-        print()
-        print(type(my_list[0][0][2]))#tokenizers.Encoding
-        input()
-        
-        dataset = tf.data.Dataset.from_generator( lambda: ((x[0][2][1], x[1][2][1], x[2][2][1]) for x in my_list),
-            output_types=(np.dtype(list) , np.dtype(list), np.dtype(list)))
-        print(len(dataset))
-        return dataset.map(lambda ancor, pos, neg: self.parse_fn(ancor, pos, neg))
-        """
         
         # tensorflow datasets accepts only one type of data so if you give int all must be int, due to this reason my_list[0][0][2].tokens and my_list[0][0][2].offsets
         # are not included in the dataset, if they must be in the dataset a workaround must be found
         to_transform = []
-        for i in tqdm(range (0,len(my_list))):
-            anchor = [my_list[i][0][2].ids, my_list[i][0][2].type_ids, my_list[i][0][2].attention_mask, my_list[i][0][2].special_tokens_mask]
-            positive = [my_list[i][1][2].ids, my_list[i][1][2].type_ids, my_list[i][1][2].attention_mask, my_list[i][1][2].special_tokens_mask]
-            negative = [my_list[i][2][2].ids, my_list[i][2][2].type_ids, my_list[i][2][2].attention_mask, my_list[i][2][2].special_tokens_mask]
-            to_transform.append([anchor, positive, negative]) 
+        
+        for i in tqdm(range (0,len(my_list)), desc="Creating tf dataset"):
+            anchor = [my_list[i][0][0].ids, my_list[i][0][0].type_ids, my_list[i][0][0].attention_mask]
+            positive = [my_list[i][0][1].ids, my_list[i][0][1].type_ids, my_list[i][0][1].attention_mask]
+            negative = [my_list[i][0][2].ids, my_list[i][0][2].type_ids, my_list[i][0][2].attention_mask]
+            to_transform.append([[anchor, positive, negative], my_list[i][1]]) 
         #the data in a tf dataset must be all of the same size, to go around this problem tf.ragged.constant has been used
-        return tf.data.Dataset.from_tensor_slices(tf.ragged.constant(to_transform))
-
-"""
-d = Data()
-tw_ds = d.get_tf_dataset(n_combinaitons = 1, repetition = True)
-print(type(tw_ds))
-##print(len(tw_ds))
-
-for example in tw_ds:
-    print(example)
-    input()
-"""
+        # return tf.data.Dataset.from_tensor_slices(tf.ragged.constant(to_transform))
+        return to_transform
