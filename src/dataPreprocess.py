@@ -3,6 +3,8 @@ from .track_1_kp_matching import *
 
 import os
 import pandas as pd
+from sklearn.model_selection import train_test_split
+
 import tensorflow as tf
 
 from tqdm import tqdm
@@ -656,3 +658,39 @@ class Data():
         #the data in a tf dataset must be all of the same size, to go around this problem tf.ragged.constant has been used
         # return tf.data.Dataset.from_tensor_slices(tf.ragged.constant(to_transform))
         return to_transform
+    
+    def create_input(self, path="kpm_data", subset="train", pretrained_tok = None, validation_size=0.3, corpus = "./src/corpuses/my_corpus"):
+        #Declare the tokenizer using the one we crated
+        if not os.path.exists(corpus):      
+            self.build_corpus(outFile=corpus)
+        else:
+            print(f"using existing corpus {corpus}")
+        
+        
+        self.tokenizer = KPMTokernizer(pretrained="bert-base-cased")
+        if pretrained_tok is None:          
+            self.tokenizer.train([corpus], "./my_pretrained_bert_tok.tkn")
+        else:
+            self.tokenizer = KPMTokernizer(pretrained=pretrained_tok)
+
+        #recover the data from the file 
+        arguments_df, key_points_df, labels_file_df = self.readCSV(path, subset)
+
+        labels = self.process_df(labels_file_df, 'l')
+        arguments = self.process_df(arguments_df, 'a')
+        keyPoints = self.process_df(key_points_df, 'k')
+
+        for label in tqdm(labels, desc="Tokenizing "):
+            label.tokenized = [self.tokenizer.encode(arguments[str(label.argId)].argument, arguments[str(label.argId)].topic)]
+            label.tokenized.append(self.tokenizer.encode(keyPoints[str(label.keyPointId)].key_point, keyPoints[str(label.keyPointId)].topic))
+        
+        to_tensor = []
+        y = [label.label for label in labels]
+        for label in tqdm(labels, desc="Preparing tensor"):
+            to_tensor.append(   [[np.asarray(label.tokenized[0].ids, dtype=np.int32), 
+                                  np.asarray(label.tokenized[0].attention_mask, dtype=np.int32),
+                                  np.asarray(label.tokenized[0].type_ids, dtype=np.int32)],
+                                [ np.asarray(label.tokenized[1].ids, dtype=np.int32), 
+                                  np.asarray(label.tokenized[1].attention_mask, dtype=np.int32),
+                                  np.asarray(label.tokenized[1].type_ids, dtype=np.int32)]])
+        return (to_tensor, y)
