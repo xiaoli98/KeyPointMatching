@@ -3,8 +3,6 @@ from .track_1_kp_matching import *
 
 import os
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-
 import tensorflow as tf
 
 from tqdm import tqdm
@@ -229,7 +227,6 @@ class Data():
         self.__test_label = None
         
         self.__tokenizer = None
-        self.__tfidf_Matrix = None
         self.counter = 0
         self.arguments_df, self.key_points_df, self.label_df = self.readCSV(path, subset)
         
@@ -288,13 +285,6 @@ class Data():
     @tokenizer.setter
     def tokenizer(self, tokenizer):
         self.__tokenizer = tokenizer
-        
-    @property
-    def tfidf_Matrix(self):
-        return self.__tfidf_Matrix    
-    @tfidf_Matrix.setter
-    def tfidf_Matrix(self, matrix):
-        self.__tfidf_Matrix=matrix
 
     #endregion 
     
@@ -340,7 +330,8 @@ class Data():
             print(f"saved in: {os.path.abspath(outFile)}")
         else:
             print("error")
-    def compute_tfidf(self):
+            
+    def compute_doc_feat_matrix(self, vectorizer):
         content = []
         arg_cols = {}
         for i, col in enumerate(self.arguments_df.columns):
@@ -354,8 +345,7 @@ class Data():
         for row in self.key_points_df.to_numpy().tolist():
             content.append(row[keyPoints_cols['key_point']] + ", " + row[keyPoints_cols['topic']])
         
-        vectorizer = TfidfVectorizer()
-        self.tfidf_Matrix = vectorizer.fit_transform(content)
+        return vectorizer.fit_transform(content)
     
     def process_df(self, df, class_type):
         """create a map with Id as key if the class is 'argument' or 'keypoint', 
@@ -705,15 +695,26 @@ class Data():
         # return tf.data.Dataset.from_tensor_slices(tf.ragged.constant(to_transform))
         return to_transform
     
-    def create_input(self, path="kpm_data", subset="train", pretrained_tok = None, validation_size=0.3, corpus = "./src/corpuses/my_corpus"):
-        #Declare the tokenizer using the one we created
+    def create_input(self, pretrained_tok = None, corpus = "./src/corpuses/my_corpus"):
+        """create the input data for siamese model
+
+        Args:
+            pretrained_tok (Tokenizer, optional): a pretrained tokenizer. Defaults to None.
+            corpus (str, optional): path to a corpus. Defaults to "./src/corpuses/my_corpus".
+
+        Returns:
+            (X, y, pos): 
+                -   X are the data for siamese model
+                -   y are labels
+                -   pos is the position of the data, it is a tuple of tow elements, one for arguments and one for key points 
+        """
         if not os.path.exists(corpus):      
             self.build_corpus(outFile=corpus)
         else:
             print(f"using existing corpus {corpus}")
         
-        self.tokenizer = KPMTokernizer(pretrained="bert-base-cased")
-        if pretrained_tok is None:          
+        if pretrained_tok is None:    
+            self.tokenizer = KPMTokernizer(pretrained="bert-base-cased")      
             self.tokenizer.train([corpus], "./my_pretrained_bert_tok.tkn")
         else:
             self.tokenizer = KPMTokernizer(pretrained=pretrained_tok)
@@ -731,7 +732,7 @@ class Data():
         to_tensor = []
         
         y = [label.label for label in labels]
-        for label in tqdm(labels, desc="Preparing tensor"):
+        for label in tqdm(labels, desc="Preparing data"):
             to_tensor.append(   [[np.asarray(label.tokenized[0].ids, dtype=np.int32), 
                                   np.asarray(label.tokenized[0].attention_mask, dtype=np.int32),
                                   np.asarray(label.tokenized[0].type_ids, dtype=np.int32)],

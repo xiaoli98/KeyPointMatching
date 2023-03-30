@@ -1,10 +1,14 @@
+import numpy as np
 import tensorflow as tf
 
 from tensorflow import keras
 
-class DistanceLayer(keras.layers.Layer):
-    def __init__(self, metric) -> None:
+class DistanceLayer():
+    def __init__(self, doc_feat_matrix, metric) -> None:
         super().__init__()
+        
+        self.doc_feat_matrix = doc_feat_matrix
+        
         if metric == "cosine":
             self.distance = self.cosine_sim
         elif metric == "jaccard":
@@ -22,10 +26,10 @@ class DistanceLayer(keras.layers.Layer):
         Returns:
             float: jaccard similarity between a and b
         """
-        a = set(a.split()) 
-        b = set(b.split())
-        c = a.intersection(b)
-        return float(len(c)) / (len(a) + len(b) - len(c))
+        features_a = a.nonzero()[1]
+        features_b = b.nonzero()[1]
+        c = np.intersect1d(features_a, features_b)
+        return float(len(c)) / (len(features_a) + len(features_b) - len(c))
 
     def cosine_sim(self, a, b)->float:
         """compute cosine similarity
@@ -38,11 +42,17 @@ class DistanceLayer(keras.layers.Layer):
             float: cosine similarity between a and b
         """
         
-        dot = tf.tensordot(a, b, axes=0)
-        magnitude_a = tf.norm(a)
-        magnitude_b = tf.norm(b)
+        dot = a.dot(b.transpose())
         
-        return tf.math.divide(dot, tf.multiply(magnitude_a, magnitude_b))
+        magnitude_a = np.sqrt(a.power(2).sum())
+        magnitude_b = np.sqrt(b.power(2).sum())
         
-    def call(self, X1, X2, metric="cosine", vectorizer=None):
-        return self.distance(X1, X2)
+        return np.divide(dot.data, magnitude_a*magnitude_b)
+    
+    def build(self, shape):
+        pass
+        
+    def compute(self, X):
+        doc1 = self.doc_feat_matrix[X[0]]
+        doc2 = self.doc_feat_matrix[X[1]]
+        return self.distance(doc1, doc2)
