@@ -3,7 +3,7 @@ from .track_1_kp_matching import *
 
 import os
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 import tensorflow as tf
 
@@ -24,6 +24,7 @@ class Argument:
         self.__argument = None
         self.__topic = None
         self.__stance = None
+        self.__tfidf_pos = None
 
     @property
     def argId(self):
@@ -48,6 +49,10 @@ class Argument:
     @property
     def stance(self):
         return self.__stance
+
+    @property
+    def tfidf_pos(self):
+        return self.__tfidf_pos
     
 
     @argId.setter
@@ -73,6 +78,10 @@ class Argument:
     @stance.setter
     def stance(self, stance):
         self.__stance = stance
+        
+    @tfidf_pos.setter
+    def tfidf_pos(self, tfidf_pos):
+        self.__tfidf_pos = tfidf_pos
 
     def printAll(self):
         print("argId:",self.__argId, " group:", self.__group," gindex:", self.__gindex, " argument:",self.__argument, " topic:",self.__topic," stance:",self.__stance)
@@ -87,6 +96,7 @@ class KeyPoint:
         self.__key_point = None 
         self.__topic = None 
         self.__stance = None 
+        self.__tfidf_pos = None
 
     @property
     def keyPointId(self):
@@ -112,6 +122,10 @@ class KeyPoint:
     def stance(self):
         return self.__stance
     
+    @property
+    def tfidf_pos(self):
+        return self.__tfidf_pos
+    
 
     @keyPointId.setter
     def keyPointId(self, keyPointId):
@@ -136,6 +150,10 @@ class KeyPoint:
     @stance.setter
     def stance(self, stance):
         self.__stance = stance
+    
+    @tfidf_pos.setter
+    def tfidf_pos(self, tfidf_pos):
+        self.__tfidf_pos = tfidf_pos
 
     def printAll(self):
         print("key_point_id:",self.__keyPointId," group:",self.__group," gindex:",self.__gindex," key_point:",self.__key_point," topic:",self.__topic," stance:",self.__stance)
@@ -202,7 +220,7 @@ class Label():
         print("argID:",self.__argId, " keyPointId:", self.__keyPointId, " label:",self.__label, " ",self.__tokenized)
     
 class Data():
-    def __init__(self) -> None:
+    def __init__(self, path="kpm_data", subset="train",) -> None:
         self.__training_data = None
         self.__training_label = None
         self.__validation_data = None
@@ -211,6 +229,9 @@ class Data():
         self.__test_label = None
         
         self.__tokenizer = None
+        self.__tfidf_Matrix = None
+        self.counter = 0
+        self.arguments_df, self.key_points_df, self.label_df = self.readCSV(path, subset)
         
     #region getter/setter
     @property
@@ -267,6 +288,13 @@ class Data():
     @tokenizer.setter
     def tokenizer(self, tokenizer):
         self.__tokenizer = tokenizer
+        
+    @property
+    def tfidf_Matrix(self):
+        return self.__tfidf_Matrix    
+    @tfidf_Matrix.setter
+    def tfidf_Matrix(self, matrix):
+        self.__tfidf_Matrix=matrix
 
     #endregion 
     
@@ -283,7 +311,7 @@ class Data():
 
         return arguments_df, key_points_df, labels_file_df
     
-    def build_corpus(self, path="kpm_data", subset="train", outFile = "./my_corpus"):
+    def build_corpus(self, outFile = "./my_corpus"):
         """build the KPM corpus
 
         Args:
@@ -293,18 +321,18 @@ class Data():
     
         """
         print("building corpus...", end="")
-        arguments_df, key_points_df, _ = self.readCSV(path, subset)#load_kpm_data(path, subset)
+        # arguments_df, key_points_df, _ = self.readCSV(path, subset)#load_kpm_data(path, subset)
         with open(outFile, "w") as file:
             arg_cols = {}
-            for i, col in enumerate(arguments_df.columns):
+            for i, col in enumerate(self.arguments_df.columns):
                 arg_cols[col] = i
-            for row in arguments_df.to_numpy().tolist():
+            for row in self.arguments_df.to_numpy().tolist():
                 file.write(row[arg_cols["argument"]] + ", " + row[arg_cols["topic"]]) 
             
             keyPoints_cols = {}
-            for i, col in enumerate(key_points_df.columns):
+            for i, col in enumerate(self.key_points_df.columns):
                 keyPoints_cols[col] = i
-            for row in key_points_df.to_numpy().tolist():
+            for row in self.key_points_df.to_numpy().tolist():
                 file.writelines(row[keyPoints_cols['key_point']] + ", " + row[keyPoints_cols['topic']])
         
         if os.path.exists(outFile):
@@ -312,6 +340,22 @@ class Data():
             print(f"saved in: {os.path.abspath(outFile)}")
         else:
             print("error")
+    def compute_tfidf(self):
+        content = []
+        arg_cols = {}
+        for i, col in enumerate(self.arguments_df.columns):
+            arg_cols[col] = i
+        for row in self.arguments_df.to_numpy().tolist():
+            content.append(row[arg_cols["argument"]] + ", " + row[arg_cols["topic"]])
+            
+        keyPoints_cols = {}
+        for i, col in enumerate(self.key_points_df.columns):
+            keyPoints_cols[col] = i
+        for row in self.key_points_df.to_numpy().tolist():
+            content.append(row[keyPoints_cols['key_point']] + ", " + row[keyPoints_cols['topic']])
+        
+        vectorizer = TfidfVectorizer()
+        self.tfidf_Matrix = vectorizer.fit_transform(content)
     
     def process_df(self, df, class_type):
         """create a map with Id as key if the class is 'argument' or 'keypoint', 
@@ -327,7 +371,6 @@ class Data():
             list : a list of label
         """
         container = {}
-        
         if class_type == 'a':
             for row in df.to_numpy().tolist():
                 arg = Argument()
@@ -336,6 +379,8 @@ class Data():
                 arg.argument = row[1] #arguments
                 arg.topic = row[2] #topic
                 arg.stance = row[3] #stance
+                arg.tfidf_pos = self.counter
+                self.counter += 1
                 container[arg.argId] = arg
         elif class_type == 'k':
             for row in df.to_numpy().tolist():
@@ -345,6 +390,8 @@ class Data():
                 kp.key_point = row[1] #key_point
                 kp.topic = row[2] #topic
                 kp.stance = row[3] #stance
+                kp.tfidf_pos = self.counter
+                self.counter += 1
                 container[kp.keyPointId] = kp
         elif class_type == 'l':
             container = []
@@ -356,7 +403,6 @@ class Data():
                 container.append(l)
         else:
             raise ValueError("argument class_type can be only 'a' (argument), 'k' (key point) or 'l' (label) ")
-        
         return container
     
     def get_data_from(self, path="kpm_data", subset="train"):
@@ -364,11 +410,11 @@ class Data():
         filename should be in [arguments, key_points, labels]
         subset should be in [train, dev, test]
         """
-        arguments_df, key_points_df, labels_file_df = self.readCSV(path, subset)#load_kpm_data(path, subset)
+        # arguments_df, key_points_df, labels_file_df = self.readCSV(path, subset)#load_kpm_data(path, subset)
 
-        labels = self.process_df(labels_file_df, 'l')
-        arguments = self.process_df(arguments_df, 'a')
-        keyPoints = self.process_df(key_points_df, 'k')
+        labels = self.process_df(self.label_df, 'l')
+        arguments = self.process_df(self.arguments_df, 'a')
+        keyPoints = self.process_df(self.key_points_df, 'k')
 
         #tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
         
@@ -476,11 +522,11 @@ class Data():
 
 
         #recover the data from the file 
-        arguments_df, key_points_df, labels_file_df = self.readCSV(path, subset)
+        # arguments_df, key_points_df, labels_file_df = self.readCSV(path, subset)
 
-        labels = self.process_df(labels_file_df, 'l')
-        arguments = self.process_df(arguments_df, 'a')
-        keyPoints = self.process_df(key_points_df, 'k')
+        labels = self.process_df(self.label_df, 'l')
+        arguments = self.process_df(self.arguments_df, 'a')
+        keyPoints = self.process_df(self.key_points_df, 'k')
         
         #devide the data based on the group and adding the tokenized argument for argument and
         # keypoint,topic for the topic 
@@ -660,12 +706,11 @@ class Data():
         return to_transform
     
     def create_input(self, path="kpm_data", subset="train", pretrained_tok = None, validation_size=0.3, corpus = "./src/corpuses/my_corpus"):
-        #Declare the tokenizer using the one we crated
+        #Declare the tokenizer using the one we created
         if not os.path.exists(corpus):      
             self.build_corpus(outFile=corpus)
         else:
             print(f"using existing corpus {corpus}")
-        
         
         self.tokenizer = KPMTokernizer(pretrained="bert-base-cased")
         if pretrained_tok is None:          
@@ -673,18 +718,18 @@ class Data():
         else:
             self.tokenizer = KPMTokernizer(pretrained=pretrained_tok)
 
-        #recover the data from the file 
-        arguments_df, key_points_df, labels_file_df = self.readCSV(path, subset)
+        labels = self.process_df(self.label_df, 'l')
+        arguments = self.process_df(self.arguments_df, 'a')
+        keyPoints = self.process_df(self.key_points_df, 'k')
 
-        labels = self.process_df(labels_file_df, 'l')
-        arguments = self.process_df(arguments_df, 'a')
-        keyPoints = self.process_df(key_points_df, 'k')
-
+        document_pos = []
         for label in tqdm(labels, desc="Tokenizing "):
+            document_pos.append((arguments[str(label.argId)].tfidf_pos, keyPoints[str(label.keyPointId)].tfidf_pos))
             label.tokenized = [self.tokenizer.encode(arguments[str(label.argId)].argument, arguments[str(label.argId)].topic)]
             label.tokenized.append(self.tokenizer.encode(keyPoints[str(label.keyPointId)].key_point, keyPoints[str(label.keyPointId)].topic))
         
         to_tensor = []
+        
         y = [label.label for label in labels]
         for label in tqdm(labels, desc="Preparing tensor"):
             to_tensor.append(   [[np.asarray(label.tokenized[0].ids, dtype=np.int32), 
@@ -693,4 +738,4 @@ class Data():
                                 [ np.asarray(label.tokenized[1].ids, dtype=np.int32), 
                                   np.asarray(label.tokenized[1].attention_mask, dtype=np.int32),
                                   np.asarray(label.tokenized[1].type_ids, dtype=np.int32)]])
-        return (to_tensor, y)
+        return (to_tensor, y, document_pos)
