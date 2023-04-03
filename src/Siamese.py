@@ -14,7 +14,7 @@ class SiameseBert(keras.layers.Layer):
         config.output_hidden_states = True
         
         self.bert = bert.from_pretrained(bert_model_name, config=config)
-        
+        self.bert.trainable=False
         self.dense1 = tf.keras.layers.Dense(64, activation = 'relu')
         self.dropout = tf.keras.layers.Dropout(0.3)
         self.dense2 = tf.keras.layers.Dense(128, activation = 'relu')

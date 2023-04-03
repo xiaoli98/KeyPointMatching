@@ -33,6 +33,8 @@ def main():
         distances.append(distance.compute(p))
     distances = np.array(distances).reshape(len(distances))
     
+    overlap_baseline = data.overlapping_score()
+    
     siamese = SiameseBert()
 
     siamese_out = siamese(input1, input2, distance_score)
@@ -40,16 +42,16 @@ def main():
     siamese_model = tf.keras.Model(inputs=[input1, input2, distance_score], outputs = siamese_out)
     siamese_model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
                           loss=tf.keras.losses.BinaryCrossentropy(),
-                          metrics=["accuracy"])
+                          metrics=[tf.keras.metrics.BinaryAccuracy(),tf.keras.metrics.Precision(thresholds=0.5),tf.keras.metrics.Recall(thresholds=0.5)])
     siamese_model.summary()
     print("start training")
     siamese_model.fit(x=(X_train[0], X_train[1], distances), 
                       y=np.array(y_train), 
                       shuffle=True,
                       validation_split = 0.2,
-                      epochs=2,
+                      epochs=1,
                       batch_size=8,
-                      verbose=2)
+                      verbose=1)
     
     
 if __name__== "__main__":
