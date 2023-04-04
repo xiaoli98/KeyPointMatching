@@ -2,7 +2,7 @@ import os
 import sys
 sys.path.insert(1, "../KeyPointMatching/src")
 from dataPreprocess import Data
-from bert_tokenizer import KPMTokernizer
+from kpmTokenizer import KPMTokernizer
 
 def main():
     

@@ -7,9 +7,8 @@ import tensorflow as tf
 
 from tqdm import tqdm
 from .tokenizer.tokenizerLF import *
-from .tokenizer.tokenizerLF import tokenize_LF
 
-from .tokenizer.bert_tokenizer import KPMTokernizer
+from .tokenizer.kpmTokenizer import KPMTokernizer
 
 import random
 
@@ -474,7 +473,7 @@ class Data():
 
 
 
-    def make_siamese_input(self, path="kpm_data", subset="train", n_combinaitons = 3, repetition = True, pretrained_tok = None):
+    def make_siamese_input(self, n_combinaitons = 3, repetition = True, pretrained_tok = None):
         """
             get the anchor from label e.g. arg_0_0,kp_0_0,0 
             than fond a positive example (another label) same topic, same kp when possible 
@@ -631,9 +630,9 @@ class Data():
                     an_pos_neg.append([[anchor, positive, negative], label.label])                    
         return an_pos_neg
 
-    def test_make_siamese_input(self, path="kpm_data", subset="train", n_combinaitons = 3, repetition = True, pretrained_tok = None):
+    def test_make_siamese_input(n_combinaitons = 3, repetition = True, pretrained_tok = None):
         d = Data()
-        asd = d.make_siamese_input(path = path, subset = subset, n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
+        asd = d.make_siamese_input(n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
         #print(asd[:5])
         print(type(asd))
         
@@ -673,14 +672,14 @@ class Data():
 
         return asd
     
-    def get_tf_dataset(self, path="kpm_data", subset="train", n_combinaitons = 3, repetition = True, pretrained_tok = None, test_input = False):
+    def get_tf_dataset(self, n_combinaitons = 3, repetition = True, pretrained_tok = None, test_input = False):
         
         my_list = None
 
         if test_input:
-            my_list = self.test_make_siamese_input(path = path, subset = subset, n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
+            my_list = self.test_make_siamese_input(n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
         else:
-            my_list = self.make_siamese_input(path = path, subset = subset, n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
+            my_list = self.make_siamese_input( n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
         
         # tensorflow datasets accepts only one type of data so if you give int all must be int, due to this reason my_list[0][0][2].tokens and my_list[0][0][2].offsets
         # are not included in the dataset, if they must be in the dataset a workaround must be found
@@ -691,11 +690,9 @@ class Data():
             positive = [my_list[i][0][1].ids, my_list[i][0][1].type_ids, my_list[i][0][1].attention_mask]
             negative = [my_list[i][0][2].ids, my_list[i][0][2].type_ids, my_list[i][0][2].attention_mask]
             to_transform.append([[anchor, positive, negative], my_list[i][1]]) 
-        #the data in a tf dataset must be all of the same size, to go around this problem tf.ragged.constant has been used
-        # return tf.data.Dataset.from_tensor_slices(tf.ragged.constant(to_transform))
         return to_transform
     
-    def create_input(self, pretrained_tok = None, corpus = "./src/corpuses/my_corpus"):
+    def create_input(self, tokenizer=None, pretrained_tok = None, corpus = "./src/corpuses/my_corpus"):
         """create the input data for siamese model
 
         Args:
@@ -717,15 +714,18 @@ class Data():
             self.tokenizer = KPMTokernizer(pretrained="bert-base-cased")      
             self.tokenizer.train([corpus], "./my_pretrained_bert_tok.tkn")
         else:
-            self.tokenizer = KPMTokernizer(pretrained=pretrained_tok)
+            self.tokenizer = KPMTokernizer(tokenizer=tokenizer,pretrained=pretrained_tok)
+            # self.tokenizer.train([corpus], "pretrained_tok.tkn")
 
         labels = self.process_df(self.label_df, 'l')
         arguments = self.process_df(self.arguments_df, 'a')
         keyPoints = self.process_df(self.key_points_df, 'k')
 
         document_pos = []
+        stances = []
         for label in tqdm(labels, desc="Tokenizing "):
             document_pos.append((arguments[str(label.argId)].tfidf_pos, keyPoints[str(label.keyPointId)].tfidf_pos))
+            stances.append((arguments[str(label.argId)].stance, keyPoints[str(label.keyPointId)].stance))
             label.tokenized = [self.tokenizer.encode(arguments[str(label.argId)].argument, arguments[str(label.argId)].topic)]
             label.tokenized.append(self.tokenizer.encode(keyPoints[str(label.keyPointId)].key_point, keyPoints[str(label.keyPointId)].topic))
         
@@ -739,4 +739,4 @@ class Data():
                                 [ np.asarray(label.tokenized[1].ids, dtype=np.int32), 
                                   np.asarray(label.tokenized[1].attention_mask, dtype=np.int32),
                                   np.asarray(label.tokenized[1].type_ids, dtype=np.int32)]])
-        return (to_tensor, y, document_pos)
+        return (to_tensor, y, document_pos, stances)

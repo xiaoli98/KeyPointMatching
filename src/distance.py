@@ -48,9 +48,6 @@ class DistanceLayer():
         magnitude_b = np.sqrt(b.power(2).sum())
         
         return np.divide(dot.data, magnitude_a*magnitude_b)
-    
-    def build(self, shape):
-        pass
         
     def compute(self, X):
         doc1 = self.doc_feat_matrix[X[0]]

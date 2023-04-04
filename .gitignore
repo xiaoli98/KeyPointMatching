@@ -9,3 +9,5 @@ src/corpuses
 words_alpha.txt
 
 *.ipynb
+
+logs/

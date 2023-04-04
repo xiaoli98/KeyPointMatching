@@ -1,1 +1,1 @@
-from .bert_tokenizer import KPMTokernizer
+from .kpmTokenizer import KPMTokernizer

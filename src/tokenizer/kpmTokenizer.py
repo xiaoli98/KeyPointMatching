@@ -21,11 +21,11 @@ class KPMTokernizer():
         
         unk_token = None
         tokenizer = None
-        pretrained = None
         normalizers_list = None
         pre_tokenizer_list = None
         post_processor = None
         decoder = None
+        name = None
         
         for kw, value in kwargs.items():
             if kw == "tokenizer":
@@ -45,8 +45,13 @@ class KPMTokernizer():
             unk_token = "[UNK]"
         if tokenizer is None and pretrained is None:
             tokenizer = Tokenizer(WordPiece(unk_token=unk_token))
-        elif pretrained is not None:
-            tokenizer = Tokenizer.from_pretrained(pretrained)
+        elif pretrained is not None and tokenizer is not None:
+            self.tokenizer = tokenizer.from_pretrained(pretrained)
+            self.tokenizer.enable_padding(length=256)
+            return
+        else:
+            print("please provide tokenizer and the pretrained, or leave empty to use the default (Tokenizer and WordPiece)")
+            exit()
         if normalizers_list is None:
             normalizers_list = [NFD(), Lowercase(), StripAccents()]
         if pre_tokenizer_list is None:
@@ -72,7 +77,7 @@ class KPMTokernizer():
         
         self.tokenizer.post_processor = post_processor
         self.tokenizer.decoder = decoder
-        self.tokenizer.enable_padding(length=128)
+        self.tokenizer.enable_padding(length=256)
         
     def train(self, files, save_path=None, trainer=WordPieceTrainer, **kwargs):
         """train the tokenizer with a trainer
