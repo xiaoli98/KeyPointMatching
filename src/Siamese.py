@@ -32,7 +32,7 @@ class Siamese(keras.layers.Layer):
             "model": self.transformer
         })
                     
-    def call(self, X1, X2, distance, training=False):
+    def call(self, X1, X2, distance, overlap,  training=False):
         ids1, attention_mask1, token_type_ids1 = tf.unstack(X1, axis=1)
         ids2, attention_mask2, token_type_ids2 = tf.unstack(X2, axis=1)
         
@@ -46,7 +46,7 @@ class Siamese(keras.layers.Layer):
         pooled_x1 = self.pooler1(selected_hiddes_states1)
         pooled_x2 = self.pooler1(selected_hiddes_states2)
 
-        concat = self.concatenate_output([pooled_x1, pooled_x2, distance])
+        concat = self.concatenate_output([pooled_x1, pooled_x2, distance, overlap])
 
         out = self.dense1(concat)
         if training:

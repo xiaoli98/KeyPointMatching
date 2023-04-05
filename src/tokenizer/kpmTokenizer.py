@@ -25,7 +25,6 @@ class KPMTokernizer():
         pre_tokenizer_list = None
         post_processor = None
         decoder = None
-        name = None
         
         for kw, value in kwargs.items():
             if kw == "tokenizer":
@@ -40,7 +39,7 @@ class KPMTokernizer():
                 unk_token = value
             elif kw == "decoder":
                 decoder = value
-            
+        
         if unk_token is None:
             unk_token = "[UNK]"
         if tokenizer is None and pretrained is None:

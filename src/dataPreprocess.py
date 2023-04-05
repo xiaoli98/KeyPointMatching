@@ -1,13 +1,10 @@
-from transformers import BertTokenizer
-from track_1_kp_matching import *
+from src.track_1_kp_matching import *
 
 import os
 import pandas as pd
 import tensorflow as tf
 
 from tqdm import tqdm
-from .tokenizer.tokenizerLF import *
-
 from .tokenizer.kpmTokenizer import KPMTokernizer
 
 import random
@@ -717,7 +714,7 @@ class Data():
             print(f"using existing corpus {corpus}")
         
         if pretrained_tok is None:    
-            self.tokenizer = KPMTokernizer(pretrained="bert-base-cased")      
+            self.tokenizer = KPMTokernizer()      
             self.tokenizer.train([corpus], "./my_pretrained_bert_tok.tkn")
         else:
             self.tokenizer = KPMTokernizer(tokenizer=tokenizer,pretrained=pretrained_tok)
@@ -748,7 +745,7 @@ class Data():
         return (to_tensor, y, document_pos, stances)
 
 
-    def overlapping_score(self, path="kpm_data", subset="train"):
+    def overlapping_score(self):
         scores = []
         
         lemmatizer = WordNetLemmatizer()

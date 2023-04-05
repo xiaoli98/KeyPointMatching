@@ -49,15 +49,16 @@ def main():
             log_dir = "logs/fit/" + datetime.datetime.now().strftime(f"%m%d-%H%M-{pretrained}-{hs}")
             tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
             
-            input1 = tf.keras.Input((3,MAX_LENGTH), dtype=tf.int32)
-            input2 = tf.keras.Input((3,MAX_LENGTH), dtype=tf.int32)
-            distance_score = tf.keras.Input(1, dtype=tf.float32)
+            input1 = tf.keras.Input((3,MAX_LENGTH), dtype=tf.int32, name="argument")
+            input2 = tf.keras.Input((3,MAX_LENGTH), dtype=tf.int32, name="keypoint")
+            distance_score = tf.keras.Input(1, dtype=tf.float32, name="distance score")
+            overlap_score = tf.keras.Input(1, dtype=tf.float32, name="overlap score")
 
             siamese = Siamese(model=model, pretrained=pretrained, hidden_states_size=hs)
 
-            siamese_out = siamese(input1, input2, distance_score)
+            siamese_out = siamese(input1, input2, distance_score, overlap_score)
 
-            siamese_model = tf.keras.Model(inputs=[input1, input2, distance_score], outputs = siamese_out)
+            siamese_model = tf.keras.Model(inputs=[input1, input2, distance_score, overlap_score], outputs = siamese_out)
             siamese_model.compile(optimizer=tf.keras.optimizers.Adam(2e-5),
                                 loss=tf.keras.losses.BinaryCrossentropy(),
                                 metrics=[tf.keras.metrics.Precision(thresholds=0.5),
@@ -65,7 +66,7 @@ def main():
                                         ])
             siamese_model.summary()
             print("start training")
-            siamese_model.fit(x=(X_train[0], X_train[1], distances), 
+            siamese_model.fit(x=(X_train[0], X_train[1], distances, overlap_baseline), 
                             y=np.array(y_train), 
                             shuffle=True,
                             # validation_split = 0.2,
