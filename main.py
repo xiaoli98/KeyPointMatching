@@ -44,6 +44,7 @@ def main():
             for p in tqdm(pos, desc="Precomputing distances"):
                 distances.append(distance.compute(p))
             distances = np.array(distances).reshape(len(distances))
+            overlap_baseline = data.overlapping_score()
             
             log_dir = "logs/fit/" + datetime.datetime.now().strftime(f"%m%d-%H%M-{pretrained}-{hs}")
             tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)

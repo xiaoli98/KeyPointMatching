@@ -1,5 +1,5 @@
 from transformers import BertTokenizer
-from .track_1_kp_matching import *
+from track_1_kp_matching import *
 
 import os
 import pandas as pd
@@ -11,6 +11,12 @@ from .tokenizer.tokenizerLF import *
 from .tokenizer.kpmTokenizer import KPMTokernizer
 
 import random
+
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+from nltk.stem import PorterStemmer
+
 
 class Argument:
 
@@ -740,3 +746,60 @@ class Data():
                                   np.asarray(label.tokenized[1].attention_mask, dtype=np.int32),
                                   np.asarray(label.tokenized[1].type_ids, dtype=np.int32)]])
         return (to_tensor, y, document_pos, stances)
+
+
+    def overlapping_score(self, path="kpm_data", subset="train"):
+        scores = []
+        
+        lemmatizer = WordNetLemmatizer()
+        ps = PorterStemmer()
+        
+        labels = self.process_df(self.label_df, 'l')
+        arguments = self.process_df(self.arguments_df, 'a')
+        keyPoints = self.process_df(self.key_points_df, 'k')
+        
+        arg_dic = {}
+        kp_dic = {}
+
+        for _, arg in tqdm(arguments.items()):
+            #print(arg.argId)
+            arg_text = word_tokenize(arg.argument)
+            #arg_tk = [word for word in arg_text if not word in stopwords.words()]
+            arg_clean = []
+            #for word in arg_tk:
+            #    arg_clean.append(lemmatizer.lemmatize(word))    
+            
+            arg_dic[arg.argId] = arg_text #arg_clean
+
+        for _, kp in tqdm(keyPoints.items()):
+            
+            kp_text = word_tokenize(kp.key_point)
+            
+            #kp_tk = [word for word in kp_text if not word in stopwords.words()]
+            kp_clean = []
+            #for word in kp_tk:
+            #c    kp_clean.append(lemmatizer.lemmatize(word))
+                
+            kp_dic[kp.keyPointId] = kp_text#kp_clean
+        
+        for label in tqdm(labels):
+            kp_id = label.keyPointId
+            arg_id = label.argId
+            
+            arg_text = arg_dic[arg_id]
+            kp_text = kp_dic[kp_id] 
+            
+            count_words =  0
+            for word in arg_text:
+                kp_clean_rec = (" ").join(kp_text)
+                count_words += kp_clean_rec.count(word)
+
+            score = count_words/min(len(arg_text),len(kp_text))
+            scores.append(score)
+            
+            #print(score)
+            #input()
+            
+        return scores  
+        
+        
