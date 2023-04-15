@@ -720,6 +720,9 @@ class Data():
             self.tokenizer = KPMTokernizer(tokenizer=tokenizer,pretrained=pretrained_tok)
             # self.tokenizer.train([corpus], "pretrained_tok.tkn")
 
+        if self.counter > 0:
+            self.counter = 0
+        
         labels = self.process_df(self.label_df, 'l')
         arguments = self.process_df(self.arguments_df, 'a')
         keyPoints = self.process_df(self.key_points_df, 'k')

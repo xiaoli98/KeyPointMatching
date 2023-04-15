@@ -24,11 +24,11 @@ def main():
     
     pretrained_models = [
                         (TFBertModel, "bert-base-uncased", None, None),
-                        (TFBertModel, "bert-large-uncased", None, None),
-                        (TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
-                        (TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large")
+                        #(TFBertModel, "bert-large-uncased", None, None),
+                        #(TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
+                        #(TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large")
                          ]
-    hidden_states=[1, 2, 4, 8]
+    hidden_states=[1, 2, 4]
     
     for model, pretrained, tokenizer, pretrained_tok in pretrained_models:
         for hs in hidden_states:
@@ -44,7 +44,8 @@ def main():
             for p in tqdm(pos, desc="Precomputing distances"):
                 distances.append(distance.compute(p))
             distances = np.array(distances).reshape(len(distances))
-            overlap_baseline = data.overlapping_score()
+            #overlap_baseline = data.overlapping_score()
+            #overlap_baseline = np.array(overlap_baseline).reshape(len(overlap_baseline))
             
             log_dir = "logs/fit/" + datetime.datetime.now().strftime(f"%m%d-%H%M-{pretrained}-{hs}")
             tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
@@ -52,29 +53,28 @@ def main():
             input1 = tf.keras.Input((3,MAX_LENGTH), dtype=tf.int32, name="argument")
             input2 = tf.keras.Input((3,MAX_LENGTH), dtype=tf.int32, name="keypoint")
             distance_score = tf.keras.Input(1, dtype=tf.float32, name="distance score")
-            overlap_score = tf.keras.Input(1, dtype=tf.float32, name="overlap score")
+           # overlap_score = tf.keras.Input(1, dtype=tf.float32, name="overlap score")
 
             siamese = Siamese(model=model, pretrained=pretrained, hidden_states_size=hs)
+            siamese((input1, input2, distance_score))
+           # siamese_out = siamese(input1, input2, distance_score)#, overlap_score)
 
-            siamese_out = siamese(input1, input2, distance_score, overlap_score)
-
-            siamese_model = tf.keras.Model(inputs=[input1, input2, distance_score, overlap_score], outputs = siamese_out)
-            siamese_model.compile(optimizer=tf.keras.optimizers.Adam(2e-5),
+            #siamese_model = tf.keras.Model(inputs=[input1, input2, distance_score], outputs = siamese_out)
+            siamese.compile(optimizer=tf.keras.optimizers.Adam(2e-5),
                                 loss=tf.keras.losses.BinaryCrossentropy(),
                                 metrics=[tf.keras.metrics.Precision(thresholds=0.5),
                                         tf.keras.metrics.Recall(thresholds=0.5)
                                         ])
-            siamese_model.summary()
+            siamese.summary()
             print("start training")
-            siamese_model.fit(x=(X_train[0], X_train[1], distances, overlap_baseline), 
+            siamese.fit(x=(X_train[0], X_train[1], distances), 
                             y=np.array(y_train), 
-                            shuffle=True,
                             # validation_split = 0.2,
                             epochs=1,
-                            batch_size=8,
+                            batch_size=16,
                             callbacks=[tensorboard_callback],
                             verbose=1)
-    
+            print("training end")
     
 if __name__== "__main__":
     main()
