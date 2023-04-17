@@ -28,7 +28,7 @@ def main():
                         #(TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
                         #(TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large")
                          ]
-    hidden_states=[1, 2, 4]
+    hidden_states=[2, 1, 4]
     
     for model, pretrained, tokenizer, pretrained_tok in pretrained_models:
         for hs in hidden_states:
@@ -57,19 +57,28 @@ def main():
 
             siamese = Siamese(model=model, pretrained=pretrained, hidden_states_size=hs)
             siamese((input1, input2, distance_score))
+            siamese.summary()
            # siamese_out = siamese(input1, input2, distance_score)#, overlap_score)
 
             #siamese_model = tf.keras.Model(inputs=[input1, input2, distance_score], outputs = siamese_out)
-            siamese.compile(optimizer=tf.keras.optimizers.Adam(2e-5),
-                                loss=tf.keras.losses.BinaryCrossentropy(),
-                                metrics=[tf.keras.metrics.Precision(thresholds=0.5),
-                                        tf.keras.metrics.Recall(thresholds=0.5)
-                                        ])
-            siamese.summary()
+            opt = tf.keras.optimizers.Adam(2e-5)
+            loss_fn = tf.keras.losses.BinaryCrossentropy()
+            
+            siamese.compile(optimizer=opt,
+                            loss= loss_fn,
+                            metrics=[
+                                    tf.keras.metrics.BinaryAccuracy(),
+                                    tf.keras.metrics.Precision(),
+                                    tf.keras.metrics.Recall()
+                                    ]
+                        )
+            
+            print(f"y_train: {np.array(y_train).sum()/len(y_train)}")
             print("start training")
+            
             siamese.fit(x=(X_train[0], X_train[1], distances), 
                             y=np.array(y_train), 
-                            # validation_split = 0.2,
+                            validation_split = 0.2,
                             epochs=1,
                             batch_size=16,
                             callbacks=[tensorboard_callback],

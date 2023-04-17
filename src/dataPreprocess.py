@@ -732,8 +732,8 @@ class Data():
         for label in tqdm(labels, desc="Tokenizing "):
             document_pos.append((arguments[str(label.argId)].tfidf_pos, keyPoints[str(label.keyPointId)].tfidf_pos))
             stances.append((arguments[str(label.argId)].stance, keyPoints[str(label.keyPointId)].stance))
-            label.tokenized = [self.tokenizer.encode(arguments[str(label.argId)].argument, arguments[str(label.argId)].topic)]
-            label.tokenized.append(self.tokenizer.encode(keyPoints[str(label.keyPointId)].key_point, keyPoints[str(label.keyPointId)].topic))
+            label.tokenized = [self.tokenizer.encode(arguments[str(label.argId)].argument)]
+            label.tokenized.append(self.tokenizer.encode(keyPoints[str(label.keyPointId)].key_point))
         
         to_tensor = []
         
