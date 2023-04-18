@@ -708,15 +708,18 @@ class Data():
                 -   y are labels
                 -   pos is the position of the data, it is a tuple of tow elements, one for arguments and one for key points 
         """
-        if not os.path.exists(corpus):      
-            self.build_corpus(outFile=corpus)
-        else:
-            print(f"using existing corpus {corpus}")
+        
+        using_batch_encoding = False    #this flag is for distinguishing huggingface tokenizer and pretrained tokenizer, which uses different notation for ids/inpu_ids
         
         if pretrained_tok is None:    
+            if not os.path.exists(corpus):      
+                self.build_corpus(outFile=corpus)
+            else:
+                print(f"using existing corpus {corpus}")
             self.tokenizer = KPMTokernizer()      
             self.tokenizer.train([corpus], "./my_pretrained_bert_tok.tkn")
         else:
+            using_batch_encoding = True
             self.tokenizer = KPMTokernizer(tokenizer=tokenizer,pretrained=pretrained_tok)
             # self.tokenizer.train([corpus], "pretrained_tok.tkn")
 
@@ -729,22 +732,31 @@ class Data():
 
         document_pos = []
         stances = []
+        
         for label in tqdm(labels, desc="Tokenizing "):
             document_pos.append((arguments[str(label.argId)].tfidf_pos, keyPoints[str(label.keyPointId)].tfidf_pos))
             stances.append((arguments[str(label.argId)].stance, keyPoints[str(label.keyPointId)].stance))
-            label.tokenized = [self.tokenizer.encode(arguments[str(label.argId)].argument)]
-            label.tokenized.append(self.tokenizer.encode(keyPoints[str(label.keyPointId)].key_point))
-        
+            # to_tokenize.append(arguments[str(label.argId)].argument)
+            # to_tokenize.append(keyPoints[str(label.keyPointId)].key_point)
+            label.tokenized = [self.tokenizer.encode(arguments[str(label.argId)].argument, padding='max_length', max_length=256)]
+            label.tokenized.append(self.tokenizer.encode(keyPoints[str(label.keyPointId)].key_point, padding='max_length', max_length=256))
+            # print(f"label.tokenized: {label.tokenized}")
+            # input()
         to_tensor = []
         
         y = [label.label for label in labels]
-        for label in tqdm(labels, desc="Preparing data"):
-            to_tensor.append(   [[np.asarray(label.tokenized[0].ids, dtype=np.int32), 
-                                  np.asarray(label.tokenized[0].attention_mask, dtype=np.int32),
-                                  np.asarray(label.tokenized[0].type_ids, dtype=np.int32)],
-                                [ np.asarray(label.tokenized[1].ids, dtype=np.int32), 
-                                  np.asarray(label.tokenized[1].attention_mask, dtype=np.int32),
-                                  np.asarray(label.tokenized[1].type_ids, dtype=np.int32)]])
+        if using_batch_encoding:
+            for label in tqdm(labels, desc="Preparing data"):
+                to_tensor.append(   [[np.asarray(label.tokenized[0].input_ids, dtype=np.int32), 
+                                    np.asarray(label.tokenized[0].attention_mask, dtype=np.int32)],
+                                    [ np.asarray(label.tokenized[1].input_ids, dtype=np.int32), 
+                                    np.asarray(label.tokenized[1].attention_mask, dtype=np.int32)]])
+        else:
+            for label in tqdm(labels, desc="Preparing data"):
+                to_tensor.append(   [[np.asarray(label.tokenized[0].ids, dtype=np.int32), 
+                                    np.asarray(label.tokenized[0].attention_mask, dtype=np.int32)],
+                                    [ np.asarray(label.tokenized[1].ids, dtype=np.int32), 
+                                    np.asarray(label.tokenized[1].attention_mask, dtype=np.int32)]])
         return (to_tensor, y, document_pos, stances)
 
 

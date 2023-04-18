@@ -19,6 +19,8 @@ class KPMTokernizer():
         4- post tokenization process, how do we want the final output of our tokenizer
         """
         
+        self.__use_pretrained = False
+        
         unk_token = None
         tokenizer = None
         normalizers_list = None
@@ -46,7 +48,7 @@ class KPMTokernizer():
             tokenizer = Tokenizer(WordPiece(unk_token=unk_token))
         elif pretrained is not None and tokenizer is not None:
             self.tokenizer = tokenizer.from_pretrained(pretrained)
-            self.tokenizer.enable_padding(length=256)
+            self.__use_pretrained = True
             return
         else:
             print("please provide tokenizer and the pretrained, or leave empty to use the default (Tokenizer and WordPiece)")
@@ -93,11 +95,13 @@ class KPMTokernizer():
             self.tokenizer.save(save_path)
         print("done!")
         
-    def encode(self, text, text2=None):
-        return self.tokenizer.encode(text, text2)
+    def encode(self, text, text2=None, **kwargs):
+        if self.__use_pretrained:
+            return self.tokenizer(text, text2, **kwargs)
+        return self.tokenizer.encode(text, text2) 
 
-    def decode(self, ids):
-        return self.tokenizer.decode(ids)
+    def decode(self, ids, **kwargs):
+        return self.tokenizer.decode(ids, **kwargs)
 
 
 

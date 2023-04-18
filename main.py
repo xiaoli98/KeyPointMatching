@@ -12,23 +12,26 @@ from sklearn.feature_extraction.text import CountVectorizer
 from src.Siamese import Siamese
 from src.distance import DistanceLayer
 from tqdm import tqdm
-from transformers import TFBertModel, BertConfig
+from transformers import TFBertModel, BertConfig, BertTokenizer
 from transformers import TFRobertaModel, RobertaTokenizer
+from transformers import TFDistilBertModel, DistilBertTokenizer
 
 
 MAX_LENGTH = 256
-
+INPUT_DIM = 2
 def main():
     data = dataPreprocess.Data()
     tf_idf_matrix = data.compute_doc_feat_matrix(TfidfVectorizer())
     
     pretrained_models = [
                         (TFBertModel, "bert-base-uncased", None, None),
-                        #(TFBertModel, "bert-large-uncased", None, None),
-                        #(TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
-                        #(TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large")
+                        (TFBertModel, "bert-base-cased", BertTokenizer, "bert-base-uncased"),
+                        (TFBertModel, "bert-large-uncased", BertTokenizer, "bert-base-uncased"),
+                        (TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
+                        (TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large"),
+                        (TFDistilBertModel, "distilbert-base-uncased", DistilBertTokenizer, "distilbert-base-uncased")
                          ]
-    hidden_states=[2, 1, 4]
+    hidden_states=[1, 2, 4]
     
     for model, pretrained, tokenizer, pretrained_tok in pretrained_models:
         for hs in hidden_states:
@@ -37,7 +40,7 @@ def main():
     
             X_train = np.array(X_train)
             y_train = np.array(y_train, dtype=np.int32)
-            X_train = X_train.reshape(2, len(X_train), 3, MAX_LENGTH)
+            X_train = X_train.reshape(2, len(X_train), INPUT_DIM, MAX_LENGTH)
             
             distance = DistanceLayer(tf_idf_matrix, "cosine")
             distances = []
@@ -50,8 +53,8 @@ def main():
             log_dir = "logs/fit/" + datetime.datetime.now().strftime(f"%m%d-%H%M-{pretrained}-{hs}")
             tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
             
-            input1 = tf.keras.Input((3,MAX_LENGTH), dtype=tf.int32, name="argument")
-            input2 = tf.keras.Input((3,MAX_LENGTH), dtype=tf.int32, name="keypoint")
+            input1 = tf.keras.Input((INPUT_DIM, MAX_LENGTH), dtype=tf.int32, name="argument")
+            input2 = tf.keras.Input((INPUT_DIM, MAX_LENGTH), dtype=tf.int32, name="keypoint")
             distance_score = tf.keras.Input(1, dtype=tf.float32, name="distance score")
            # overlap_score = tf.keras.Input(1, dtype=tf.float32, name="overlap score")
 
@@ -83,7 +86,7 @@ def main():
                             batch_size=16,
                             callbacks=[tensorboard_callback],
                             verbose=1)
-            print("training end")
+            siamese.save(f"models/{pretrained}-{hs}")
     
 if __name__== "__main__":
     main()
