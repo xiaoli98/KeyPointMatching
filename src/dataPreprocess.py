@@ -397,85 +397,8 @@ class Data():
             raise ValueError("argument class_type can be only 'a' (argument), 'k' (key point) or 'l' (label) ")
         return container
     
-    def get_data_from(self, path="kpm_data", subset="train"):
-        """read csv data from path and the file format should be ./path/filename_{subset}.csv
-        filename should be in [arguments, key_points, labels]
-        subset should be in [train, dev, test]
-        """
-        # arguments_df, key_points_df, labels_file_df = self.readCSV(path, subset)#load_kpm_data(path, subset)
-
-        labels = self.process_df(self.label_df, 'l')
-        arguments = self.process_df(self.arguments_df, 'a')
-        keyPoints = self.process_df(self.key_points_df, 'k')
-
-        #tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
-        
-        vocab = load_vocab_file()
-        tokenized_data = []
-        tokenized_mask = []
-        tokenized_attention = []
-        maxLen = 10
-        
-        printfrase = ""
-        a=0
-        data = []
-        targets = []
-
-        for label in labels:
-            argId = label.argId
-            keyId = label.keyPointId
-            if arguments[argId].stance == keyPoints[keyId].stance:
-                #data.append('[CLS] '+arguments[argId].argument + ' [SEP] '+ keyPoints[keyId].key_point)
-                to_tokenize = '[CLS] '+arguments[argId].argument + ' [SEP] '+ keyPoints[keyId].key_point
-                targets.append(label.label)
-                vocab, tkz, mask = tokenize_LF(toTokenize=to_tokenize,dictionary=vocab)
-                if a == 0:
-                    printfrase = to_tokenize
-                    a+=1
-                
-                if len(tkz) > maxLen:
-                    maxLen = len(tkz) 
-                
-                tokenized_data.append(tkz)
-                tokenized_mask.append(mask)
-
-        tokenized_data, tokenized_attention = padArray(tokenized_data, maxLen,0,True)
-        tokenized_mask = padArray(tokenized_mask, maxLen, 1)
-        
-        print("length of {} data: {}" .format(subset, str(len(tokenized_data))))
-        print("length of {} mask: {}".format(subset, str(len(tokenized_mask))))
-        print("length of {} attention: {}".format(subset, str(len(tokenized_attention))))
-        print("length of {} labels: {}".format(subset, str(len(targets))))
-
-        #print("original phrase ", printfrase)
-        #print("frase ",tk_to_phrase(tokenized_data[0]))
-        print("data", tokenized_data[0])
-        print("mask", tokenized_mask[0])
-        print("att", tokenized_attention[0])
-        #tokenized_data.append(tokenized_mask)
-        #tokenized_data = tokenizer(data, padding=True, truncation=True)
-        
-        #tokenized = dict(zip(["input_ids","attention_mask","token_type_ids"],[tokenized_data, tokenized_attention, tokenized_mask]))
-        tokenized = {"input_ids":tokenized_data, "attention_mask":tokenized_attention, "token_type_ids":tokenized_mask}
-        
-        print("here 2")
-        
-        tokenized_data = tf.data.Dataset.from_tensor_slices(tokenized, targets)
-        print("here 3")
-        
-        if subset == 'train':
-            self.training_data = tokenized_data
-            self.training_label = targets
-        elif subset == 'dev':
-            self.validation_data = tokenized_data
-            self.validation_label = targets
-        elif subset == 'test':
-            self.test_data = tokenized_data
-            self.test_label = targets
     
-
-
-
+   
     def make_siamese_input(self, n_combinaitons = 3, repetition = True, pretrained_tok = None):
         """
             get the anchor from label e.g. arg_0_0,kp_0_0,0 
@@ -632,69 +555,8 @@ class Data():
                     
                     an_pos_neg.append([[anchor, positive, negative], label.label])                    
         return an_pos_neg
-
-    def test_make_siamese_input(n_combinaitons = 3, repetition = True, pretrained_tok = None):
-        d = Data()
-        asd = d.make_siamese_input(n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
-        #print(asd[:5])
-        print(type(asd))
-        
-        good_input = 0
-        wrong_input = 0
-            
-        for i in tqdm(range(0,len(asd))):
-            
-            if (asd[i][1][3] == asd[i][0][3] and asd[i][2][3] != asd[i][0][3] ):
-                good_input+=1
-            else:
-                print(asd[i][0][0].printAll())
-                print(asd[i][0][1].printAll())
-                print(asd[i][0][2])
-                print(asd[i][0][3])
-                print("+++++")
-                print(asd[i][1][0].printAll())
-                print(asd[i][1][1].printAll())
-                print(asd[i][1][2])
-                print(asd[i][1][3])
-                print("+++++")
-                print(asd[i][2][0].printAll())
-                print(asd[i][2][1].printAll())
-                print(asd[i][2][2])
-                print(asd[i][2][3])
-                print("---")
-                
-                wrong_input+=1
-        
-        print("the correct inputs are: ", good_input, " out of ", len(asd))
-        print("the wrong inputs are: ", wrong_input, " out of ", len(asd))
-        error_rate = (wrong_input/len(asd))*100
-        print("error rate is: ",error_rate,"%")
-        
-        correct_rate = (good_input/len(asd))*100
-        print("correct rate is: ",correct_rate,"%")
-
-        return asd
-    
-    def get_tf_dataset(self, n_combinaitons = 3, repetition = True, pretrained_tok = None, test_input = False):
-        
-        my_list = None
-
-        if test_input:
-            my_list = self.test_make_siamese_input(n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
-        else:
-            my_list = self.make_siamese_input( n_combinaitons=n_combinaitons, repetition = repetition, pretrained_tok=pretrained_tok)
-        
-        # tensorflow datasets accepts only one type of data so if you give int all must be int, due to this reason my_list[0][0][2].tokens and my_list[0][0][2].offsets
-        # are not included in the dataset, if they must be in the dataset a workaround must be found
-        to_transform = []
-        
-        for i in tqdm(range (0,len(my_list)), desc="Creating tf dataset"):
-            anchor = [my_list[i][0][0].ids, my_list[i][0][0].type_ids, my_list[i][0][0].attention_mask]
-            positive = [my_list[i][0][1].ids, my_list[i][0][1].type_ids, my_list[i][0][1].attention_mask]
-            negative = [my_list[i][0][2].ids, my_list[i][0][2].type_ids, my_list[i][0][2].attention_mask]
-            to_transform.append([[anchor, positive, negative], my_list[i][1]]) 
-        return to_transform
-    
+ 
+ 
     def create_input(self, tokenizer=None, pretrained_tok = None, corpus = "./src/corpuses/my_corpus"):
         """create the input data for siamese model
 
@@ -814,4 +676,5 @@ class Data():
             
         return scores  
         
+    
         

@@ -1,5 +1,3 @@
-# import src.BertLayer as BertLayer
-
 import tensorflow as tf
 import transformers
 
