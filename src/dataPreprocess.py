@@ -14,6 +14,10 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.stem import PorterStemmer
 
+from src.overlap_score import * 
+from multiprocessing import Pool
+from os.path import exists
+
 
 class Argument:
 
@@ -557,12 +561,13 @@ class Data():
         return an_pos_neg
  
  
-    def create_input(self, tokenizer=None, pretrained_tok = None, corpus = "./src/corpuses/my_corpus"):
+    def create_input(self, tokenizer=None, pretrained_tok = None, corpus = "./src/corpuses/my_corpus", using_sq_classifier = False):
         """create the input data for siamese model
 
         Args:
             pretrained_tok (Tokenizer, optional): a pretrained tokenizer. Defaults to None.
             corpus (str, optional): path to a corpus. Defaults to "./src/corpuses/my_corpus".
+            using_sq_classifier: if true returns the input for the sequential classifier
 
         Returns:
             (X, y, pos): 
@@ -594,87 +599,113 @@ class Data():
 
         document_pos = []
         stances = []
-        
-        for label in tqdm(labels, desc="Tokenizing "):
-            document_pos.append((arguments[str(label.argId)].tfidf_pos, keyPoints[str(label.keyPointId)].tfidf_pos))
-            stances.append((arguments[str(label.argId)].stance, keyPoints[str(label.keyPointId)].stance))
-            # to_tokenize.append(arguments[str(label.argId)].argument)
-            # to_tokenize.append(keyPoints[str(label.keyPointId)].key_point)
-            label.tokenized = [self.tokenizer.encode(arguments[str(label.argId)].argument, padding='max_length', max_length=256)]
-            label.tokenized.append(self.tokenizer.encode(keyPoints[str(label.keyPointId)].key_point, padding='max_length', max_length=256))
-            # print(f"label.tokenized: {label.tokenized}")
-            # input()
         to_tensor = []
         
-        y = [label.label for label in labels]
-        if using_batch_encoding:
-            for label in tqdm(labels, desc="Preparing data"):
-                to_tensor.append(   [[np.asarray(label.tokenized[0].input_ids, dtype=np.int32), 
-                                    np.asarray(label.tokenized[0].attention_mask, dtype=np.int32)],
-                                    [ np.asarray(label.tokenized[1].input_ids, dtype=np.int32), 
-                                    np.asarray(label.tokenized[1].attention_mask, dtype=np.int32)]])
+        
+        if using_sq_classifier:
+            
+            for label in tqdm(labels, desc="Tokenizing "):
+                document_pos.append((arguments[str(label.argId)].tfidf_pos, keyPoints[str(label.keyPointId)].tfidf_pos))
+                stances.append((arguments[str(label.argId)].stance, keyPoints[str(label.keyPointId)].stance))
+                label.tokenized = self.tokenizer.encode(arguments[str(label.argId)].argument, keyPoints[str(label.keyPointId)].key_point)
+                
+            y = [label.label for label in labels]
+            if using_batch_encoding:
+                for label in tqdm(labels, desc="Preparing data"):
+                    to_tensor.append(   [np.asarray(label.tokenized.input_ids, dtype=np.int32), 
+                                        np.asarray(label.tokenized.attention_mask, dtype=np.int32)])
+            else:
+                for label in tqdm(labels, desc="Preparing data"):
+                    to_tensor.append(   [np.asarray(label.tokenized.ids, dtype=np.int32), 
+                                        np.asarray(label.tokenized.attention_mask, dtype=np.int32)])
+            
         else:
-            for label in tqdm(labels, desc="Preparing data"):
-                to_tensor.append(   [[np.asarray(label.tokenized[0].ids, dtype=np.int32), 
-                                    np.asarray(label.tokenized[0].attention_mask, dtype=np.int32)],
-                                    [ np.asarray(label.tokenized[1].ids, dtype=np.int32), 
-                                    np.asarray(label.tokenized[1].attention_mask, dtype=np.int32)]])
+            for label in tqdm(labels, desc="Tokenizing "):
+                document_pos.append((arguments[str(label.argId)].tfidf_pos, keyPoints[str(label.keyPointId)].tfidf_pos))
+                stances.append((arguments[str(label.argId)].stance, keyPoints[str(label.keyPointId)].stance))
+                # to_tokenize.append(arguments[str(label.argId)].argument)
+                # to_tokenize.append(keyPoints[str(label.keyPointId)].key_point)
+                label.tokenized = [self.tokenizer.encode(arguments[str(label.argId)].argument, padding='max_length', max_length=256)]
+                label.tokenized.append(self.tokenizer.encode(keyPoints[str(label.keyPointId)].key_point, padding='max_length', max_length=256))
+                # print(f"label.tokenized: {label.tokenized}")
+                # input()
+                
+            y = [label.label for label in labels]
+            if using_batch_encoding:
+                for label in tqdm(labels, desc="Preparing data"):
+                    to_tensor.append(   [[np.asarray(label.tokenized[0].input_ids, dtype=np.int32), 
+                                        np.asarray(label.tokenized[0].attention_mask, dtype=np.int32)],
+                                        [ np.asarray(label.tokenized[1].input_ids, dtype=np.int32), 
+                                        np.asarray(label.tokenized[1].attention_mask, dtype=np.int32)]])
+            else:
+                for label in tqdm(labels, desc="Preparing data"):
+                    to_tensor.append(   [[np.asarray(label.tokenized[0].ids, dtype=np.int32), 
+                                        np.asarray(label.tokenized[0].attention_mask, dtype=np.int32)],
+                                        [ np.asarray(label.tokenized[1].ids, dtype=np.int32), 
+                                        np.asarray(label.tokenized[1].attention_mask, dtype=np.int32)]])
         return (to_tensor, y, document_pos, stances)
 
 
-    def overlapping_score(self):
-        scores = []
+    def overlapping_score(self, overwrite = False, path = ""):
         
-        lemmatizer = WordNetLemmatizer()
-        ps = PorterStemmer()
-        
-        labels = self.process_df(self.label_df, 'l')
-        arguments = self.process_df(self.arguments_df, 'a')
-        keyPoints = self.process_df(self.key_points_df, 'k')
-        
-        arg_dic = {}
-        kp_dic = {}
+        if overwrite == True or (os.path.exists(path+"overlap_scores.txt") == False and overwrite == False): #os.path.exists(path+"overlap_scores.txt") == False:
+            
+            scores = []
+            
+            labels = self.process_df(self.label_df, 'l')
+            arguments = self.process_df(self.arguments_df, 'a')
+            keyPoints = self.process_df(self.key_points_df, 'k')
+            
+            arg_dic = {}
+            kp_dic = {}
 
-        for _, arg in tqdm(arguments.items()):
-            #print(arg.argId)
-            arg_text = word_tokenize(arg.argument)
-            #arg_tk = [word for word in arg_text if not word in stopwords.words()]
-            arg_clean = []
-            #for word in arg_tk:
-            #    arg_clean.append(lemmatizer.lemmatize(word))    
-            
-            arg_dic[arg.argId] = arg_text #arg_clean
-
-        for _, kp in tqdm(keyPoints.items()):
-            
-            kp_text = word_tokenize(kp.key_point)
-            
-            #kp_tk = [word for word in kp_text if not word in stopwords.words()]
-            kp_clean = []
-            #for word in kp_tk:
-            #c    kp_clean.append(lemmatizer.lemmatize(word))
-                
-            kp_dic[kp.keyPointId] = kp_text#kp_clean
-        
-        for label in tqdm(labels):
-            kp_id = label.keyPointId
-            arg_id = label.argId
-            
-            arg_text = arg_dic[arg_id]
-            kp_text = kp_dic[kp_id] 
-            
-            count_words =  0
-            for word in arg_text:
-                kp_clean_rec = (" ").join(kp_text)
-                count_words += kp_clean_rec.count(word)
-
-            score = count_words/min(len(arg_text),len(kp_text))
-            scores.append(score)
-            
-            #print(score)
-            #input()
-            
-        return scores  
-        
+            overlapper = overlap_score(False, True, False)
     
+            #arg_dic = dict(map(lambda arg: (arg[1].argId, overlapper.preprocess_text(arg[1].argument)), tqdm(arguments.items())))
+            print("preprocessing arguments: ")
+            results = []
+            with Pool() as pool:
+            # Use poolmap to apply the function to each argument in parallel
+                for result in tqdm(pool.imap_unordered(overlapper.preprocess_arg, arguments.items()), total=len(arguments.items())):
+                    results.append(result)
+                # Close the pool
+                pool.close()
+                pool.join()
+        
+            arg_dic = dict(results)
+            print("preprocessing keypoint: ")
+            results = []
+            with Pool() as pool:
+            # Use poolmap to apply the function to each argument in parallel
+                for result in tqdm(pool.imap_unordered(overlapper.preprocess_kp, keyPoints.items()), total=len(keyPoints.items())):
+                    results.append(result)
+                # Close the pool
+                pool.close()
+                pool.join()
+
+            kp_dic = dict(results)
+
+            scores = []
+            for label in tqdm(labels):
+                kp_id = label.keyPointId
+                arg_id = label.argId
+                
+                arg_text = arg_dic[arg_id]
+                kp_text = kp_dic[kp_id] 
+
+                scores.append(round(overlapper.compute_overlap_score(arg_text,kp_text),3))
+
+            file = open("overlap_scores.txt", "w")
+            [file.write((str(val)+"\n")) for val in scores]
+            file.close()
+            
+            return scores  
+        
+        elif overwrite == False:
+            with open("overlap_scores.txt") as f:
+                data = f.readlines()
+
+            scores = [float(i.strip()) for i in data]
+            return scores 
+        
         
