@@ -307,7 +307,7 @@ class Data():
 
         return arguments_df, key_points_df, labels_file_df
     
-    def build_corpus(self, outFile = "./my_corpus"):
+    def build_corpus(self, path ="./src/corpuses", outFile = "/my_corpus"):
         """build the KPM corpus
 
         Args:
@@ -316,9 +316,16 @@ class Data():
             outFile(str): output where to store thhe corpus
     
         """
+        if os.path.exists(path+outFile):
+            return 
+        
         print("building corpus...", end="")
+        
+        if not os.path.exists(path):  
+            os.makedirs(path)       
+      
         # arguments_df, key_points_df, _ = self.readCSV(path, subset)#load_kpm_data(path, subset)
-        with open(outFile, "w") as file:
+        with open(path+outFile, "w") as file:
             arg_cols = {}
             for i, col in enumerate(self.arguments_df.columns):
                 arg_cols[col] = i
@@ -426,11 +433,10 @@ class Data():
         """
 
         #Declare the tokenizer using the one we crated
-        corpus = "./src/corpuses/my_corpus"
-        if not os.path.exists(corpus):      
-            self.build_corpus(outFile=corpus)
-        else:
-            print(f"using existing corpus {corpus}")
+        corpus = "./src/corpuses/"
+        print("hello ")
+        
+        self.build_corpus()
         
         
         self.tokenizer = KPMTokernizer(pretrained="bert-base-cased")
@@ -579,10 +585,8 @@ class Data():
         using_batch_encoding = False    #this flag is for distinguishing huggingface tokenizer and pretrained tokenizer, which uses different notation for ids/inpu_ids
         
         if pretrained_tok is None:    
-            if not os.path.exists(corpus):      
-                self.build_corpus(outFile=corpus)
-            else:
-                print(f"using existing corpus {corpus}")
+            self.build_corpus()
+                
             self.tokenizer = KPMTokernizer()      
             self.tokenizer.train([corpus], "./my_pretrained_bert_tok.tkn")
         else:
