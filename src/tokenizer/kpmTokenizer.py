@@ -8,7 +8,6 @@ from tokenizers.processors import TemplateProcessing
 from tokenizers.trainers import WordPieceTrainer
 from tokenizers import decoders
 
-
 class KPMTokernizer():
     def __init__(self, pretrained = None, *args, **kwargs):
         """define the tokenizer pipeline, which consist of:
@@ -18,9 +17,10 @@ class KPMTokernizer():
         4- post tokenization process, how do we want the final output of our tokenizer
         """
         
+        self.__use_pretrained = False
+        
         unk_token = None
         tokenizer = None
-        pretrained = None
         normalizers_list = None
         pre_tokenizer_list = None
         post_processor = None
@@ -39,13 +39,18 @@ class KPMTokernizer():
                 unk_token = value
             elif kw == "decoder":
                 decoder = value
-            
+        
         if unk_token is None:
             unk_token = "[UNK]"
         if tokenizer is None and pretrained is None:
             tokenizer = Tokenizer(WordPiece(unk_token=unk_token))
-        elif pretrained is not None:
-            tokenizer = Tokenizer.from_pretrained(pretrained)
+        elif pretrained is not None and tokenizer is not None:
+            self.tokenizer = tokenizer.from_pretrained(pretrained)
+            self.__use_pretrained = True
+            return
+        else:
+            print("please provide tokenizer and the pretrained, or leave empty to use the default (Tokenizer and WordPiece)")
+            exit()
         if normalizers_list is None:
             normalizers_list = [NFD(), Lowercase(), StripAccents()]
         if pre_tokenizer_list is None:
@@ -64,9 +69,12 @@ class KPMTokernizer():
         
         self.tokenizer = tokenizer
         self.tokenizer.normalizer = normalizers.Sequence(normalizers_list)
+        
         self.tokenizer.pre_tokenizer = pre_tokenizers.Sequence(pre_tokenizer_list)
+        
         self.tokenizer.post_processor = post_processor
         self.tokenizer.decoder = decoder
+        self.tokenizer.enable_padding(length=256)
         
     def train(self, files, save_path=None, trainer=WordPieceTrainer, **kwargs):
         """train the tokenizer with a trainer
@@ -83,9 +91,14 @@ class KPMTokernizer():
             self.tokenizer.save(save_path)
         print("done!")
         
-    def encode(self, text):
-        return self.tokenizer.encode(text)
+    def encode(self, text, text2=None, **kwargs):
+        if self.__use_pretrained:
+            return self.tokenizer(text, text2, **kwargs)
+        return self.tokenizer.encode(text, text2) 
 
-    def decode(self, ids):
-        return self.tokenizer.decode(ids)
+    def decode(self, ids, **kwargs):
+        return self.tokenizer.decode(ids, **kwargs)
+
+
+
     

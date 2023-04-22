@@ -5,3 +5,9 @@ __pycache__/
 src/corpuses
 
 *.tkn
+
+words_alpha.txt
+
+*.ipynb
+
+logs/
