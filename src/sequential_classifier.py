@@ -23,12 +23,6 @@ class sequential_classifier(keras.Model):
         
         
         self.hidden_states_size = hidden_states_size
-    
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            "model": self.transformer
-        })
         
     def call(self, input, training=False):
         

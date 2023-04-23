@@ -62,8 +62,8 @@ def main():
             tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
             
             input1 = tf.keras.Input((INPUT_DIM, MAX_LENGTH), dtype=tf.int32, name="argument")
-            distance_score = tf.keras.Input(1, dtype=tf.float32, name="distance score")
-            #overlap_score = tf.keras.Input(1, dtype=tf.float32, name="overlap score")
+            distance_score = tf.keras.Input(1, dtype=tf.float32, name="distance_score")
+            #overlap_score = tf.keras.Input(1, dtype=tf.float32, name="overlap_score")
 
             classifier = sequential_classifier(model=model, pretrained=pretrained, hidden_states_size=hs)
             classifier((input1, distance_score))
@@ -90,7 +90,34 @@ def main():
                             batch_size=16,
                             callbacks=[tensorboard_callback],
                             verbose=1)
+            
             classifier.save(f"models/{pretrained}-{hs}")
+
+            print("end of training")
+        
+            data_dev = dataPreprocess.Data(subset="dev")
+            tf_idf_matrix_dev = data_dev.compute_doc_feat_matrix(TfidfVectorizer())
+            X_dev, y_dev, pos_dev, stances_dev = data_dev.create_input(tokenizer=tokenizer,pretrained_tok=pretrained_tok,using_sq_classifier=True)
     
+            X_dev = np.array(X_dev)
+            print("X_train: ", X_dev.shape)
+            y_dev= np.array(y_dev, dtype=np.int32)
+            
+            distance_dev = DistanceLayer(tf_idf_matrix_dev, "cosine")
+            distances_dev = []
+
+            for p in tqdm(pos_dev, desc="Precomputing distances"):
+                distances_dev.append(distance_dev.compute(p))
+                #distances_j.append(distance_j.compute(p))
+                
+            distances_dev = np.array(distances_dev).reshape(len(distances_dev))
+            
+
+            out = classifier.predict(x=(X_dev, distances_dev))
+            
+            with open("prediction_dev", "w") as f:
+              for o in out:
+                f.writelines(str(o))
+            
 if __name__== "__main__":
     main()

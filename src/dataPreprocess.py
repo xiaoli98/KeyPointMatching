@@ -338,7 +338,7 @@ class Data():
             for row in self.key_points_df.to_numpy().tolist():
                 file.writelines(row[keyPoints_cols['key_point']] + ", " + row[keyPoints_cols['topic']])
         
-        if os.path.exists(outFile):
+        if os.path.exists(path+outFile):
             print("done!")
             print(f"saved in: {os.path.abspath(outFile)}")
         else:
