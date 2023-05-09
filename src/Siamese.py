@@ -19,18 +19,15 @@ class Siamese(keras.Model):
         self.concatenate_output = keras.layers.Concatenate(axis=1)
        
         self.sequential = tf.keras.Sequential()
-        self.sequential.add(tf.keras.layers.Dense(1024, tf.keras.activations.relu))
-        self.sequential.add(tf.keras.layers.Dropout(0.3))
         self.sequential.add(tf.keras.layers.Dense(2048, tf.keras.activations.relu))
+        self.sequential.add(tf.keras.layers.Dropout(0.2))
+        self.sequential.add(tf.keras.layers.Dense(1024, tf.keras.activations.relu))
+        self.sequential.add(tf.keras.layers.Dense(512, tf.keras.activations.relu))
+        self.sequential.add(tf.keras.layers.Dropout(0.2))
+        self.sequential.add(tf.keras.layers.Dense(256, tf.keras.activations.relu))
         self.sequential.add(tf.keras.layers.Dense(1, tf.keras.activations.sigmoid))
 
         self.hidden_states_size = hidden_states_size
-    
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            "model": self.transformer
-        })
         
     def summary(self):
         super().summary()

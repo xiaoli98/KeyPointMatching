@@ -24,9 +24,9 @@ def main():
     #feature_matrix = data.compute_doc_feat_matrix(CountVectorizer())
     
     pretrained_models = [
-                        (TFBertModel, "bert-base-uncased", None, None),
-                        #(TFBertModel, "bert-base-cased", BertTokenizer, "bert-base-uncased"),
-                        #(TFBertModel, "bert-large-uncased", BertTokenizer, "bert-base-uncased"),
+                        # (TFBertModel, "bert-base-uncased", None, None),
+                        (TFBertModel, "bert-base-uncased", BertTokenizer, "bert-base-uncased"),
+                        # (TFBertModel, "bert-large-uncased", BertTokenizer, "bert-large-uncased"),
                         #(TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
                         #(TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large"),
                         #(TFDistilBertModel, "distilbert-base-uncased", DistilBertTokenizer, "distilbert-base-uncased")

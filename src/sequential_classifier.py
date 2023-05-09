@@ -15,10 +15,11 @@ class sequential_classifier(keras.Model):
         self.pooler1 = keras.layers.GlobalAveragePooling1D()
         self.concatenate_output = keras.layers.Concatenate(axis=1)
        
-        
-        self.dense1 = tf.keras.layers.Dense(1024, activation = 'relu')
+        self.dense1 = tf.keras.layers.Dense(2048, activation = 'relu')
         self.dropout = tf.keras.layers.Dropout(0.3)
-        self.dense2 = tf.keras.layers.Dense(2048, activation = 'relu')
+        self.dense2 = tf.keras.layers.Dense(1024, activation = 'relu')
+        self.dense3 = tf.keras.layers.Dense(512, activation = 'relu')
+        self.dense4 = tf.keras.layers.Dense(256, activation = 'relu')
         self.classifier = tf.keras.layers.Dense(1, activation = 'sigmoid')
         
         
@@ -41,5 +42,7 @@ class sequential_classifier(keras.Model):
         if training:
             out = self.dropout(out)
         out = self.dense2(out)
+        out = self.dense3(out)
+        out = self.dense4(out)
         
         return self.classifier(out)   
