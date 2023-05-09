@@ -611,7 +611,7 @@ class Data():
             for label in tqdm(labels, desc="Tokenizing "):
                 document_pos.append((arguments[str(label.argId)].tfidf_pos, keyPoints[str(label.keyPointId)].tfidf_pos))
                 stances.append((arguments[str(label.argId)].stance, keyPoints[str(label.keyPointId)].stance))
-                label.tokenized = self.tokenizer.encode(arguments[str(label.argId)].argument, keyPoints[str(label.keyPointId)].key_point)
+                label.tokenized = self.tokenizer.encode(arguments[str(label.argId)].argument, keyPoints[str(label.keyPointId)].key_point, padding='max_length', max_length=256)
                 
             y = [label.label for label in labels]
             if using_batch_encoding:

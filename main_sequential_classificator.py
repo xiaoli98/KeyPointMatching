@@ -25,11 +25,11 @@ def main():
     
     pretrained_models = [
                         (TFBertModel, "bert-base-uncased", None, None),
-                        #(TFBertModel, "bert-base-cased", BertTokenizer, "bert-base-uncased"),
-                        #(TFBertModel, "bert-large-uncased", BertTokenizer, "bert-base-uncased"),
-                        #(TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
-                        #(TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large"),
-                        #(TFDistilBertModel, "distilbert-base-uncased", DistilBertTokenizer, "distilbert-base-uncased")
+                        (TFBertModel, "bert-base-uncased", BertTokenizer, "bert-base-uncased"),
+                        (TFBertModel, "bert-large-uncased", BertTokenizer, "bert-large-uncased"),
+                        (TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
+                        (TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large"),
+                        (TFDistilBertModel, "distilbert-base-uncased", DistilBertTokenizer, "distilbert-base-uncased")
                          ]
     hidden_states=[1, 2, 4]
     
@@ -86,7 +86,7 @@ def main():
             
             classifier.fit(x=(X_train, distances), 
                             y=np.array(y_train), 
-                            epochs=1,
+                            epochs=3,
                             batch_size=16,
                             callbacks=[tensorboard_callback],
                             verbose=1)

@@ -9,22 +9,26 @@ class sequential_classifier(keras.Model):
         super(sequential_classifier, self).__init__(*args, **kwargs)
         
         self.transformer = model.from_pretrained(pretrained, output_hidden_states=True)
-        self.transformer.trainable = False
+        self.transformer.trainable = True
         
         self.concatenate_hidden_states = keras.layers.Concatenate(axis=1)
         self.pooler1 = keras.layers.GlobalAveragePooling1D()
         self.concatenate_output = keras.layers.Concatenate(axis=1)
        
         
-        self.dense1 = tf.keras.layers.Dense(1024, activation = 'relu')
+        self.dense1 = tf.keras.layers.Dense(2048, activation = 'relu')
         self.dropout = tf.keras.layers.Dropout(0.3)
-        self.dense2 = tf.keras.layers.Dense(2048, activation = 'relu')
+        self.dense2 = tf.keras.layers.Dense(1024, activation = 'relu')
+        self.dense3 = tf.keras.layers.Dense(512, activation = 'relu')
+        self.dropout2 = tf.keras.layers.Dropout(0.2)
+        self.dense4 = tf.keras.layers.Dense(256, activation = 'relu')
+        
         self.classifier = tf.keras.layers.Dense(1, activation = 'sigmoid')
         
         
         self.hidden_states_size = hidden_states_size
         
-    def call(self, input, training=False):
+    def call(self, input, training=True):
         
         X1, distance = input
         distance = tf.reshape(distance, [tf.shape(distance)[0], 1])
@@ -41,5 +45,9 @@ class sequential_classifier(keras.Model):
         if training:
             out = self.dropout(out)
         out = self.dense2(out)
-        
+        out = self.dense3(out)
+        if training:
+            out = self.dropout2(out)
+        out = self.dense4(out)
+
         return self.classifier(out)   
