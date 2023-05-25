@@ -39,12 +39,12 @@ def main():
     #feature_matrix = data.compute_doc_feat_matrix(CountVectorizer())
     
     pretrained_models = [
-                        (TFBertModel, "bert-base-uncased", None, None),
-                        (TFBertModel, "bert-base-uncased", BertTokenizer, "bert-base-uncased"),
+                        #(TFBertModel, "bert-base-uncased", None, None),
+                        #(TFBertModel, "bert-base-uncased", BertTokenizer, "bert-base-uncased"),
                         #(TFBertModel, "bert-large-uncased", BertTokenizer, "bert-large-uncased"),
                         (TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
                         #(TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large"),
-                        (TFDistilBertModel, "distilbert-base-uncased", DistilBertTokenizer, "distilbert-base-uncased")
+                        #(TFDistilBertModel, "distilbert-base-uncased", DistilBertTokenizer, "distilbert-base-uncased")
                          ]
     hidden_states=[1]
     
@@ -131,7 +131,7 @@ def main():
 
             out = classifier.predict(x=(X_dev, distances_dev))
             
-            with open(("prediction_dev"+pretrained), "w") as f:
+            with open(("prediction_dev_"+pretrained), "w") as f:
               for o in out:
                 f.writelines(str(o))
             

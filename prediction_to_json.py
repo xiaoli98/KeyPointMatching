@@ -26,7 +26,7 @@ class PredictionToJsonConverter:
             result[name][spec] = value
         
         # Specify the file path where you want to save the JSON data
-        file_path = "./"+self.path_to_predictions+".json"
+        file_path = "./"+self.path_to_predictions+".p"
 
         # Save the JSON data to the file
         with open(file_path, 'w') as file:
@@ -63,7 +63,7 @@ class PredictionToJsonConverter:
         return couples
 
 
-converter = PredictionToJsonConverter("./kpm_data/labels_dev.csv", "./prediction_devroberta-base")
+converter = PredictionToJsonConverter("./kpm_data/labels_dev.csv", "./prediction_dev_roberta-base")
 json_output = converter.convert_to_json()
 
 
