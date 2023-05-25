@@ -18,7 +18,22 @@ from transformers import TFDistilBertModel, DistilBertTokenizer
 
 MAX_LENGTH = 256
 INPUT_DIM = 2
+
+
+from tensorflow.python.framework.config import set_memory_growth
+def useGPU():
+    
+    os.environ['CUDA_HOME'] = '/usr/local/cuda'
+    os.environ['PATH']= '/usr/local/cuda/bin:$PATH'  
+    os.environ['CPATH'] = '/usr/local/cuda/include:$CPATH'  
+    os.environ['LIBRARY_PATH'] = '/usr/local/cuda/lib64:$LIBRARY_PATH'  
+    os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH'  
+    os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda/lib64:$LD_LIBRARY_PATH'
+    os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
+
 def main():
+    useGPU()
+    
     data = dataPreprocess.Data()
     tf_idf_matrix = data.compute_doc_feat_matrix(TfidfVectorizer())
     #feature_matrix = data.compute_doc_feat_matrix(CountVectorizer())
@@ -26,12 +41,12 @@ def main():
     pretrained_models = [
                         (TFBertModel, "bert-base-uncased", None, None),
                         (TFBertModel, "bert-base-uncased", BertTokenizer, "bert-base-uncased"),
-                        (TFBertModel, "bert-large-uncased", BertTokenizer, "bert-large-uncased"),
+                        #(TFBertModel, "bert-large-uncased", BertTokenizer, "bert-large-uncased"),
                         (TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
-                        (TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large"),
+                        #(TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large"),
                         (TFDistilBertModel, "distilbert-base-uncased", DistilBertTokenizer, "distilbert-base-uncased")
                          ]
-    hidden_states=[1, 2, 4]
+    hidden_states=[1]
     
     for model, pretrained, tokenizer, pretrained_tok in pretrained_models:
         for hs in hidden_states:
@@ -40,6 +55,7 @@ def main():
     
             X_train = np.array(X_train)
             print("X_train: ", X_train.shape)
+
             y_train = np.array(y_train, dtype=np.int32)
             #X_train = X_train.reshape(1, len(X_train), INPUT_DIM, MAX_LENGTH)
             
@@ -86,8 +102,8 @@ def main():
             
             classifier.fit(x=(X_train, distances), 
                             y=np.array(y_train), 
-                            epochs=3,
-                            batch_size=16,
+                            epochs=5,
+                            batch_size=8,
                             callbacks=[tensorboard_callback],
                             verbose=1)
             
@@ -115,7 +131,7 @@ def main():
 
             out = classifier.predict(x=(X_dev, distances_dev))
             
-            with open("prediction_dev", "w") as f:
+            with open(("prediction_dev"+pretrained), "w") as f:
               for o in out:
                 f.writelines(str(o))
             
