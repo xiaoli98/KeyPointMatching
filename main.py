@@ -20,6 +20,18 @@ from transformers import TFDistilBertModel, DistilBertTokenizer
 MAX_LENGTH = 256
 INPUT_DIM = 2
 
+
+from tensorflow.python.framework.config import set_memory_growth
+def useGPU():
+    
+    os.environ['CUDA_HOME'] = '/usr/local/cuda'
+    os.environ['PATH']= '/usr/local/cuda/bin:$PATH'  
+    os.environ['CPATH'] = '/usr/local/cuda/include:$CPATH'  
+    os.environ['LIBRARY_PATH'] = '/usr/local/cuda/lib64:$LIBRARY_PATH'  
+    os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH'  
+    os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda/lib64:$LD_LIBRARY_PATH'
+    os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
+    
 def oversampling(x, y):
     """oversampling of the dataset, the positive class is oversampled to match the negative class
 
@@ -44,16 +56,17 @@ def oversampling(x, y):
     return x, y
 
 def main():
+    useGPU()
     data = dataPreprocess.Data()
     tf_idf_matrix = data.compute_doc_feat_matrix(TfidfVectorizer())
     
     pretrained_models = [
                         (TFBertModel, "bert-base-uncased", None, None),
-                        (TFBertModel, "bert-base-uncased", BertTokenizer, "bert-base-uncased"),
-                        (TFBertModel, "bert-large-uncased", BertTokenizer, "bert-large-uncased"),
-                        (TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
-                        (TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large"),
-                        (TFDistilBertModel, "distilbert-base-uncased", DistilBertTokenizer, "distilbert-base-uncased")
+                        #(TFBertModel, "bert-base-uncased", BertTokenizer, "bert-base-uncased"),
+                        #(TFBertModel, "bert-large-uncased", BertTokenizer, "bert-large-uncased"),
+                        #(TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
+                        #(TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large"),
+                        #(TFDistilBertModel, "distilbert-base-uncased", DistilBertTokenizer, "distilbert-base-uncased")
                          ]
     hidden_states=[1, 2, 4]
     
@@ -64,7 +77,7 @@ def main():
     
             X_train = np.array(X_train)
             y_train = np.array(y_train, dtype=np.int32)
-            X_train, y_train = oversampling(X_train, y_train)            
+            #X_train, y_train = oversampling(X_train, y_train)            
             X_train = X_train.reshape(2, len(X_train), INPUT_DIM, MAX_LENGTH)
             
             distance = DistanceLayer(tf_idf_matrix, "cosine")
@@ -106,8 +119,8 @@ def main():
             
             siamese.fit(x=(X_train[0], X_train[1], distances), 
                             y=np.array(y_train), 
-                            epochs=1,
-                            batch_size=32,
+                            epochs=5,
+                            batch_size=4,
                             shuffle=True,
                             callbacks=[tensorboard_callback],
                             verbose=1)
