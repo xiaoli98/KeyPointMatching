@@ -61,14 +61,14 @@ def main():
     tf_idf_matrix = data.compute_doc_feat_matrix(TfidfVectorizer())
     
     pretrained_models = [
-                        (TFBertModel, "bert-base-uncased", None, None),
-                        #(TFBertModel, "bert-base-uncased", BertTokenizer, "bert-base-uncased"),
-                        #(TFBertModel, "bert-large-uncased", BertTokenizer, "bert-large-uncased"),
-                        #(TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
-                        #(TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large"),
-                        #(TFDistilBertModel, "distilbert-base-uncased", DistilBertTokenizer, "distilbert-base-uncased")
+                        # (TFBertModel, "bert-base-uncased", None, None),
+                        (TFBertModel, "bert-base-uncased", BertTokenizer, "bert-base-uncased"),
+                        (TFBertModel, "bert-large-uncased", BertTokenizer, "bert-large-uncased"),
+                        (TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
+                        (TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large"),
+                        (TFDistilBertModel, "distilbert-base-uncased", DistilBertTokenizer, "distilbert-base-uncased")
                          ]
-    hidden_states=[1, 2, 4]
+    hidden_states=[1]
     
     for model, pretrained, tokenizer, pretrained_tok in pretrained_models:
         for hs in hidden_states:
@@ -120,7 +120,7 @@ def main():
             siamese.fit(x=(X_train[0], X_train[1], distances), 
                             y=np.array(y_train), 
                             epochs=5,
-                            batch_size=4,
+                            batch_size=16,
                             shuffle=True,
                             callbacks=[tensorboard_callback],
                             verbose=1)
