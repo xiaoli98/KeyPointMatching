@@ -69,7 +69,7 @@ def oversampling(x, y):
 def main():
     #useGPU()
     #per usare una sola gpu del server unipi DEVE ESERE COSÌ PER LE REGOLE DI UNIPI
-    os.environ["CUDA_VISIBLE_DEVICES"]="1"
+    os.environ["CUDA_VISIBLE_DEVICES"]= "1","0","2" 
     data = dataPreprocess.Data()
     tf_idf_matrix = data.compute_doc_feat_matrix(TfidfVectorizer())
     
