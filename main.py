@@ -36,6 +36,8 @@ def useGPU():
         tf.config.experimental.set_memory_growth(physical_devices[0], True)
         tf.config.set_visible_devices(physical_devices[1], 'GPU')
         tf.config.experimental.set_memory_growth(physical_devices[1], True)
+        tf.config.set_visible_devices(physical_devices[2], 'GPU')
+        tf.config.experimental.set_memory_growth(physical_devices[2], True)
     except:
      #Invalid device or cannot modify virtual devices once initialized.
         pass
