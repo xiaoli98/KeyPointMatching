@@ -69,7 +69,7 @@ def oversampling(x, y):
 def main():
     #useGPU()
     #per usare una sola gpu del server unipi DEVE ESERE COSÌ PER LE REGOLE DI UNIPI
-    os.environ["CUDA_VISIBLE_DEVICES"]= "1","0","2" 
+    os.environ["CUDA_VISIBLE_DEVICES"]= "1" 
     data = dataPreprocess.Data()
     tf_idf_matrix = data.compute_doc_feat_matrix(TfidfVectorizer())
     
@@ -133,7 +133,7 @@ def main():
             siamese.fit(x=(X_train[0], X_train[1], distances), 
                             y=np.array(y_train), 
                             epochs=5,
-                            batch_size=32,
+                            batch_size=16,
                             shuffle=True,
                             callbacks=[tensorboard_callback],
                             verbose=1)
