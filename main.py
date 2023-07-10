@@ -1,6 +1,12 @@
 # import src.model as model
 import datetime
 import tensorflow as tf
+
+# to use the unipi server for training
+
+tf.config.gpu.set_per_process_memory_fraction (0.50)                  │
+tf.config.gpu.set_per_process_memory_growth (True)
+
 import src.dataPreprocess as dataPreprocess
 import os
 
@@ -56,7 +62,9 @@ def oversampling(x, y):
     return x, y
 
 def main():
-    useGPU()
+    #useGPU()
+    #per usare una sola gpu del server unipi DEVE ESERE COSÌ PER LE REGOLE DI UNIPI
+    os.environ["CUDA_VISIBLE_DEVICES"]="0"
     data = dataPreprocess.Data()
     tf_idf_matrix = data.compute_doc_feat_matrix(TfidfVectorizer())
     
@@ -67,7 +75,7 @@ def main():
                         (TFRobertaModel, "roberta-base", RobertaTokenizer, "roberta-base"),
                         (TFRobertaModel, "roberta-large", RobertaTokenizer, "roberta-large"),
                         (TFDistilBertModel, "distilbert-base-uncased", DistilBertTokenizer, "distilbert-base-uncased")
-                         ]
+                        ]
     hidden_states=[1]
     
     for model, pretrained, tokenizer, pretrained_tok in pretrained_models:
@@ -120,7 +128,7 @@ def main():
             siamese.fit(x=(X_train[0], X_train[1], distances), 
                             y=np.array(y_train), 
                             epochs=5,
-                            batch_size=16,
+                            batch_size=32,
                             shuffle=True,
                             callbacks=[tensorboard_callback],
                             verbose=1)
