@@ -3,9 +3,8 @@ import datetime
 import tensorflow as tf
 
 # to use the unipi server for training
-
-tf.config.gpu.set_per_process_memory_fraction (0.50)                  │
-tf.config.gpu.set_per_process_memory_growth (True)
+tf.config.gpu.set_per_process_memory_fraction(0.50)
+tf.config.gpu.set_per_process_memory_growth(True)
 
 import src.dataPreprocess as dataPreprocess
 import os
@@ -64,7 +63,7 @@ def oversampling(x, y):
 def main():
     #useGPU()
     #per usare una sola gpu del server unipi DEVE ESERE COSÌ PER LE REGOLE DI UNIPI
-    os.environ["CUDA_VISIBLE_DEVICES"]="0"
+    os.environ["CUDA_VISIBLE_DEVICES"]="1"
     data = dataPreprocess.Data()
     tf_idf_matrix = data.compute_doc_feat_matrix(TfidfVectorizer())
     
