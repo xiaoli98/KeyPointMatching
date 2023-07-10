@@ -72,7 +72,7 @@ def oversampling(x, y):
     return x, y
 
 def main():
-    #useGPU()
+    useGPU()
     #per usare una sola gpu del server unipi DEVE ESERE COSÌ PER LE REGOLE DI UNIPI
     #os.environ["CUDA_VISIBLE_DEVICES"]= "1" 
     data = dataPreprocess.Data()
