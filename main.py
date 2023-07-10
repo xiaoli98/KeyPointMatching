@@ -2,9 +2,7 @@
 import datetime
 import tensorflow as tf
 
-# to use the unipi server for training
-tf.config.gpu.set_per_process_memory_fraction(0.50)
-tf.config.gpu.set_per_process_memory_growth(True)
+
 
 import src.dataPreprocess as dataPreprocess
 import os
@@ -25,8 +23,16 @@ from transformers import TFDistilBertModel, DistilBertTokenizer
 MAX_LENGTH = 256
 INPUT_DIM = 2
 
-
+# to use the unipi server for training
+#tf.config.gpu.set_per_process_memory_fraction(0.50)
 from tensorflow.python.framework.config import set_memory_growth
+physical_devices = tf.config.list_physical_devices('GPU')
+try:
+  tf.config.experimental.set_memory_growth(physical_devices[1], True)
+except:
+  # Invalid device or cannot modify virtual devices once initialized.
+  pass
+
 def useGPU():
     
     os.environ['CUDA_HOME'] = '/usr/local/cuda'
