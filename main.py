@@ -26,12 +26,12 @@ INPUT_DIM = 2
 # to use the unipi server for training
 #tf.config.gpu.set_per_process_memory_fraction(0.50)
 from tensorflow.python.framework.config import set_memory_growth
-physical_devices = tf.config.list_physical_devices('GPU')
-try:
-  tf.config.experimental.set_memory_growth(physical_devices[1], True)
-except:
+#physical_devices = tf.config.list_physical_devices('GPU')
+#try:
+#  tf.config.experimental.set_memory_growth(physical_devices[1], True)
+#except:
   # Invalid device or cannot modify virtual devices once initialized.
-  pass
+#  pass
 
 def useGPU():
     
