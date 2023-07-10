@@ -26,22 +26,27 @@ INPUT_DIM = 2
 # to use the unipi server for training
 #tf.config.gpu.set_per_process_memory_fraction(0.50)
 from tensorflow.python.framework.config import set_memory_growth
-#physical_devices = tf.config.list_physical_devices('GPU')
-#try:
-#  tf.config.experimental.set_memory_growth(physical_devices[1], True)
-#except:
-  # Invalid device or cannot modify virtual devices once initialized.
-#  pass
+
 
 def useGPU():
     
-    os.environ['CUDA_HOME'] = '/usr/local/cuda'
-    os.environ['PATH']= '/usr/local/cuda/bin:$PATH'  
-    os.environ['CPATH'] = '/usr/local/cuda/include:$CPATH'  
-    os.environ['LIBRARY_PATH'] = '/usr/local/cuda/lib64:$LIBRARY_PATH'  
-    os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH'  
-    os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda/lib64:$LD_LIBRARY_PATH'
-    os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
+    physical_devices = tf.config.list_physical_devices('GPU')
+    try:
+        tf.config.set_visible_devices(physical_devices[0], 'GPU')
+        tf.config.experimental.set_memory_growth(physical_devices[0], True)
+        tf.config.set_visible_devices(physical_devices[1], 'GPU')
+        tf.config.experimental.set_memory_growth(physical_devices[1], True)
+    except:
+     #Invalid device or cannot modify virtual devices once initialized.
+        pass
+
+    #os.environ['CUDA_HOME'] = '/usr/local/cuda'
+    #os.environ['PATH']= '/usr/local/cuda/bin:$PATH'  
+    #os.environ['CPATH'] = '/usr/local/cuda/include:$CPATH'  
+    #os.environ['LIBRARY_PATH'] = '/usr/local/cuda/lib64:$LIBRARY_PATH'  
+    #os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH'  
+    #os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda/lib64:$LD_LIBRARY_PATH'
+    #os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
     
 def oversampling(x, y):
     """oversampling of the dataset, the positive class is oversampled to match the negative class
@@ -69,7 +74,7 @@ def oversampling(x, y):
 def main():
     #useGPU()
     #per usare una sola gpu del server unipi DEVE ESERE COSÌ PER LE REGOLE DI UNIPI
-    os.environ["CUDA_VISIBLE_DEVICES"]= "1" 
+    #os.environ["CUDA_VISIBLE_DEVICES"]= "1" 
     data = dataPreprocess.Data()
     tf_idf_matrix = data.compute_doc_feat_matrix(TfidfVectorizer())
     
