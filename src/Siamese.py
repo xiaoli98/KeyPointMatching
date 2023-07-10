@@ -12,7 +12,7 @@ class Siamese(keras.Model):
         
         self.transformer = model.from_pretrained(pretrained, output_hidden_states=True)
         #FIXME this is a hack to make the model faster
-        self.transformer.trainable = False
+        self.transformer.trainable = True
         
         self.concatenate_hidden_states = keras.layers.Concatenate(axis=1)
         self.pooler1 = keras.layers.GlobalAveragePooling1D()
