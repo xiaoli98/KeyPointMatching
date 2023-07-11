@@ -20,9 +20,9 @@ class Siamese(keras.Model):
        
         self.sequential = tf.keras.Sequential()
         self.sequential.add(tf.keras.layers.Dense(2048, tf.keras.activations.relu))
-        self.sequential.add(tf.keras.layers.Dropout(0.2))
+        self.sequential.add(tf.keras.layers.Dropout(0.3))
         self.sequential.add(tf.keras.layers.Dense(1024, tf.keras.activations.relu))
-        self.sequential.add(tf.keras.layers.Dropout(0.2))
+        #self.sequential.add(tf.keras.layers.Dropout(0.2))
         self.sequential.add(tf.keras.layers.Dense(512, tf.keras.activations.relu))
         self.sequential.add(tf.keras.layers.Dropout(0.2))
         self.sequential.add(tf.keras.layers.Dense(256, tf.keras.activations.relu))

@@ -20,14 +20,11 @@ from transformers import TFRobertaModel, RobertaTokenizer
 from transformers import TFDistilBertModel, DistilBertTokenizer
 
 
-MAX_LENGTH = 256
+MAX_LENGTH = 64 # deve essere della stessa dimensione della sequenza dopo il padding
 INPUT_DIM = 2
 
 # to use the unipi server for training
-#tf.config.gpu.set_per_process_memory_fraction(0.50)
 from tensorflow.python.framework.config import set_memory_growth
-
-
 def useGPU():
     
     physical_devices = tf.config.list_physical_devices('GPU')

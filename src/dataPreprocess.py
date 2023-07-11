@@ -623,16 +623,24 @@ class Data():
                     to_tensor.append(   [np.asarray(label.tokenized.ids, dtype=np.int32), 
                                         np.asarray(label.tokenized.attention_mask, dtype=np.int32)])
         else:
+            #aml = 0
             for label in tqdm(labels, desc="Tokenizing "):
                 document_pos.append((arguments[str(label.argId)].tfidf_pos, keyPoints[str(label.keyPointId)].tfidf_pos))
                 stances.append((arguments[str(label.argId)].stance, keyPoints[str(label.keyPointId)].stance))
-                # to_tokenize.append(arguments[str(label.argId)].argument)
-                # to_tokenize.append(keyPoints[str(label.keyPointId)].key_point)
-                label.tokenized = [self.tokenizer.encode(arguments[str(label.argId)].argument, padding='max_length', max_length=256)]
-                label.tokenized.append(self.tokenizer.encode(keyPoints[str(label.keyPointId)].key_point, padding='max_length', max_length=256))
+                label.tokenized = [self.tokenizer.encode(arguments[str(label.argId)].argument, padding='max_length', max_length=64)]                
+                label.tokenized.append(self.tokenizer.encode(keyPoints[str(label.keyPointId)].key_point, padding='max_length', max_length=64))
+
+            ''' Utilizzato per vedere manualmente quale è la grandezza massima della sequenza per il padding da togliere
+                if len(label.tokenized[-1].input_ids) > aml:
+                    aml = len(label.tokenized[-1].input_ids)
+                label.tokenized.append(self.tokenizer.encode(keyPoints[str(label.keyPointId)].key_point, padding='max_length', max_length=64))
                 # print(f"label.tokenized: {label.tokenized}")
-                # input()
-                
+                if len(label.tokenized[-1].input_ids) > aml:
+                    aml = len(label.tokenized[-1].input_ids)
+            print("max_lenght = ", aml)
+            input()
+            '''
+
             y = [label.label for label in labels]
             if using_batch_encoding:
                 for label in tqdm(labels, desc="Preparing data"):
