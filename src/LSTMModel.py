@@ -16,7 +16,7 @@ class LSTMModel(keras.Model):
         self.model = Sequential()
         self.model.add(Embedding(vocab_size, output_dim, input_length=max_length))
         self.model.add(LSTM(64, dropout=0.1))
-        self.model.add(LSTM(128, dropout=0.1))
+        #self.model.add(LSTM(128, dropout=0.1))
         self.model.add(Dense(64, activation='relu'))
         self.model.add(Dense(1, activation='sigmoid'))
         
