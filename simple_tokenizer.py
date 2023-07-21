@@ -74,7 +74,7 @@ def tokenize_LSTM():
     x = sequence#sequence.tolist()
     y = [label.label for label in labels]
     
-    return x, y
+    return x, y, len(dct.keys())
 
     
 
@@ -95,7 +95,7 @@ def tokenize_LSTM():
 def preprocess_text(label, dct):
     tokens = reg_text_clean(label.tokenized)
     label.tokenized = [token.lower() for token in tokens if token.lower() not in stop_words]
-    label.tokenized = dct.doc2idx(label.tokenized)
+    label.tokenized = dct.doc2idx(label.tokenized, 0)
     return label
 
 def load_vocab_file():

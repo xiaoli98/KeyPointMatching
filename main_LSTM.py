@@ -28,12 +28,12 @@ def main():
     log_dir = "logs/fit/" + datetime.datetime.now().strftime(f"%m%d-%H%M-LSTM")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     
-    X_train, y_train = tokenize.tokenize_LSTM()
+    X_train, y_train, vocab_size = tokenize.tokenize_LSTM()
 
     batch_size = 16
     input_size = list(np.shape(X_train))
 
-    lstm = LSTMModel.LSTMModel(max_length = input_size[1], name="LSTM")
+    lstm = LSTMModel.LSTMModel(vocab_size=vocab_size, max_length = input_size[1], name="LSTM")
     opt = tf.keras.optimizers.Adam(2e-5)
     loss_fn = tf.keras.losses.BinaryCrossentropy()
     
@@ -54,7 +54,7 @@ def main():
                 shuffle=True,
                 callbacks=[tensorboard_callback],
                 verbose=1)
-    lstm.save(f"models/{pretrained}-{hs}")
+    lstm.save(f"models/{datetime.datetime.now().strftime(f'%m%d-%H%M')}-LSTM")
 
 if __name__== "__main__":
     main()
