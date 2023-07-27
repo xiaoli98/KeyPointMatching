@@ -29,8 +29,11 @@ def main():
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     
     X_train, y_train, vocab_size = tokenize.tokenize_LSTM()
+    input_length = len(X_train[0])
+    X_dev, y_dev, _ = tokenize.tokenize_LSTM(path="kpm_data", subset="dev", pad_to_length=input_length)
 
-    batch_size = 16
+    BATCH_SIZE = 64
+    EPOCHS = 150
     input_size = list(np.shape(X_train))
 
     lstm = LSTMModel.LSTMModel(vocab_size=vocab_size, max_length = input_size[1], name="LSTM")
@@ -49,12 +52,20 @@ def main():
     print("start training")
     lstm.fit(x=X_train, 
                 y=np.array(y_train), 
-                epochs=5,
-                batch_size=batch_size,
+                validation_data=(X_dev, np.array(y_dev)),
+                epochs=EPOCHS,
+                batch_size=BATCH_SIZE,
                 shuffle=True,
                 callbacks=[tensorboard_callback],
                 verbose=1)
     lstm.save(f"models/{datetime.datetime.now().strftime(f'%m%d-%H%M')}-LSTM")
+    
+    data_dev = dataPreprocess.Data(subset="dev")
+    
+    out_dev = lstm.predict(X_dev)
+    with open(f"./prediction_dev_LSTM.txt", "w") as f:
+        for i in range(len(out_dev)):
+            f.write(f"{out_dev[i]}\n")
 
 if __name__== "__main__":
     main()

@@ -33,9 +33,9 @@ stop_words = set(stopwords.words('english'))
 
 not_in_corpora = {"haaapy":0,"sada":0}
 
-def tokenize_LSTM():
+def tokenize_LSTM(path="kpm_data", subset="train", pad_to_length=None):
     
-    data = dataPreprocess.Data()
+    data = dataPreprocess.Data(path=path, subset=subset)
 
     labels = data.process_df(data.label_df, 'l')
     arguments = data.process_df(data.arguments_df, 'a')
@@ -66,7 +66,7 @@ def tokenize_LSTM():
         label = preprocess_text(label, dct)
 
     sequence = [label.tokenized for label in labels]
-    sequence = tf.keras.preprocessing.sequence.pad_sequences(sequence, padding='post')
+    sequence = tf.keras.preprocessing.sequence.pad_sequences(sequence, padding='post', maxlen=pad_to_length)
     print("shape x: ", sequence.shape)
     #sequence = np.reshape(sequence,(sequence.shape[0] ,1, sequence.shape[1]))
     #print("shape x: ", sequence.shape)

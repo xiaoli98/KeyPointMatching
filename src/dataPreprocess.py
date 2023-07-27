@@ -224,7 +224,7 @@ class Label():
         print("argID:",self.__argId, " keyPointId:", self.__keyPointId, " label:",self.__label, " ",self.__tokenized)
     
 class Data():
-    def __init__(self, path="kpm_data", subset="train",) -> None:
+    def __init__(self, path="kpm_data", subset="train") -> None:
         self.__training_data = None
         self.__training_label = None
         self.__validation_data = None
