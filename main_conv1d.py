@@ -18,7 +18,7 @@ def main():
     X_dev, y_dev, _ = tokenize.tokenize_LSTM(path="kpm_data", subset="dev", pad_to_length=input_length)
 
     BATCH_SIZE = 6
-    EPOCHS = 180
+    EPOCHS = 170
     input_size = list(np.shape(X_train))
 
     conv = Conv1D.Convolution(vocab_size=vocab_size, max_length = input_size[1], name="conv1d")
