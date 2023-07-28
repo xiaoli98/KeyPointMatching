@@ -8,7 +8,6 @@ import simple_tokenizer as tokenize
 
 
 def main():
-    os.environ["CUDA_VISIBLE_DEVICES"]=""
     data = dataPreprocess.Data()
     
     log_dir = "logs/fit/" + datetime.datetime.now().strftime(f"%m%d-%H%M-conv1d")
@@ -19,7 +18,7 @@ def main():
     X_dev, y_dev, _ = tokenize.tokenize_LSTM(path="kpm_data", subset="dev", pad_to_length=input_length)
 
     BATCH_SIZE = 6
-    EPOCHS = 150
+    EPOCHS = 180
     input_size = list(np.shape(X_train))
 
     conv = Conv1D.Convolution(vocab_size=vocab_size, max_length = input_size[1], name="conv1d")
@@ -49,7 +48,7 @@ def main():
             shuffle=True,
             callbacks=[tensorboard_callback],
             verbose=1)
-    conv.save(f"models/{pretrained}-{hs}-Conv1d")
+    conv.save(f"models/Conv1d-{EPOCHS}-{BATCH_SIZE}")
 
     data_dev = dataPreprocess.Data(subset="dev")
     
